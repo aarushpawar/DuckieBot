@@ -1,0 +1,11 @@
+<launch>
+    <arg name="veh" doc="Name of vehicle. i.e. duckiebot"/>
+    <arg name="pkg_name" value="lane_follower"/>
+    <arg name="node_name" default="lane_follower_node"/>
+
+    <group ns="$(arg veh)">
+        <node pkg="$(arg pkg_name)" type="$(arg node_name).py" name="$(arg node_name)" output="screen">
+            <param name="veh" value="$(arg veh)"/>
+        </node>
+    </group>
+</launch>
