@@ -13,7 +13,7 @@ dt-launchfile-init
 # NOTE: Use `dt-exec COMMAND` to run the main process (blocking process)
 
 # launching app
-dt-exec roslaunch lane_follower lane_follower_node.launch veh:="$VEHICLE_NAME"
+dt-exec roslaunch shape_driver shape_driver_node.launch veh:="$VEHICLE_NAME"
 
 
 # ----------------------------------------------------------------------------
