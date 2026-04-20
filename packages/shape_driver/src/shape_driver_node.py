@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
+# Update NODE_VERSION on every change (see CLAUDE.md § Versioning)
+NODE_VERSION = "1.1.0"
+
 import os
-import time
 import rospy
 from duckietown.dtros import DTROS, NodeType
 from duckietown_msgs.msg import Twist2DStamped
@@ -25,8 +27,8 @@ class ShapeDriverNode(DTROS):
             self.cb_command
         )
 
-        self.current_shape = "stop"
-        self.log("Shape Driver ready. Publish to ~command: circle, rectangle, triangle, stop")
+        self.current_shape = "rectangle"
+        self.log(f"Shape Driver v{NODE_VERSION} ready. Running rectangle. Publish to ~command to change: circle, rectangle, triangle, stop")
 
     def cb_command(self, msg):
         cmd = msg.data.strip().lower()
