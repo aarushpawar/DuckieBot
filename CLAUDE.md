@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Workflow
+
+After completing any code change, always commit and push to `main` automatically — do not wait for the user to ask.
+
 ## What this is
 
 A **Duckietown ROS package** for the Duckiebot DB21J — a differential-drive robot running Jetson Nano 4GB with a fully containerized ROS Noetic stack. The repo builds on top of `dt-core` (the Duckietown autonomy base image) and runs inside Docker on the robot.
@@ -38,7 +42,7 @@ dts fleet discover          # find robots on network
 ## ROS packages
 
 ### `packages/shape_driver/` (active)
-Drives the Duckiebot in geometric shapes (circle, rectangle, triangle). Uses `DTROS` base class with `NodeType.CONTROL`. Publishes `Twist2DStamped` to `/{veh}/kinematics_node/car_cmd`. Accepts shape commands via a `std_msgs/String` subscriber on `/{veh}/shape_driver_node/command`. Defaults to running rectangle on startup.
+Drives the Duckiebot in geometric shapes (circle, rectangle, triangle). Uses `DTROS` base class with `NodeType.CONTROL`. Publishes `Twist2DStamped` to `/{veh}/car_cmd_switch_node/cmd`. Accepts shape commands via a `std_msgs/String` subscriber on `/{veh}/shape_driver_node/command`. Defaults to running rectangle on startup.
 
 ### `packages/lane_follower_backup/` (backup)
 A full DTROS lane-following node using computer vision. Subscribes to `/{veh}/camera_node/image/compressed`, publishes `WheelsCmdStamped` to `/{veh}/wheels_driver_node/wheels_cmd`. Implements its own kinematics (reads from `/data/config/calibrations/kinematics/{veh}.yaml`). Uses HSV color filtering on a lower ROI (60–90% of frame height) to detect yellow (attract) and white (repel) lane markings.
@@ -50,7 +54,7 @@ Standalone (non-DTROS) version of the lane follower. Has the robot hostname hard
 
 | Topic | Type | Direction |
 |-------|------|-----------|
-| `/{veh}/kinematics_node/car_cmd` | `Twist2DStamped` | publish (shape_driver) |
+| `/{veh}/car_cmd_switch_node/cmd` | `Twist2DStamped` | publish (shape_driver) |
 | `/{veh}/shape_driver_node/command` | `String` | subscribe (shape_driver) |
 | `/{veh}/wheels_driver_node/wheels_cmd` | `WheelsCmdStamped` | publish (lane_follower) |
 | `/{veh}/camera_node/image/compressed` | `CompressedImage` | subscribe (lane_follower) |

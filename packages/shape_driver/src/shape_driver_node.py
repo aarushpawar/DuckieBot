@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Update NODE_VERSION on every change (see CLAUDE.md § Versioning)
-NODE_VERSION = "1.1.0"
+NODE_VERSION = "1.2.0"
 
 import os
 import rospy
@@ -16,7 +16,7 @@ class ShapeDriverNode(DTROS):
         self.veh = os.environ.get("VEHICLE_NAME", "duckiebot")
 
         self.pub_car_cmd = rospy.Publisher(
-            f"/{self.veh}/kinematics_node/car_cmd",
+            f"/{self.veh}/car_cmd_switch_node/cmd",
             Twist2DStamped,
             queue_size=1
         )
