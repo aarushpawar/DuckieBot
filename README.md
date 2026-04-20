@@ -1,54 +1,87 @@
-# Template: template-core
+# DuckieBot Shape Driver
 
-This template provides a boilerplate repository
-for developing ROS-based software in Duckietown.
-Unlike the `template-ros` repository, this template
-builds on top of the module 
-[`dt-core`](https://github.com/duckietown/dt-core).
-This is needed when your application requires access 
-to tools and libraries defined in 
-[`dt-core`](https://github.com/duckietown/dt-core).
+Drives a Duckiebot DB21J in geometric shapes (circle, rectangle, triangle) via ROS commands. Built on `dt-core`, runs fully containerized via Docker on the robot.
 
+---
 
-**NOTE:** If you want to develop software that does not use
-ROS, check out [this template](https://github.com/duckietown/template-basic).
+## Prerequisites
 
+- Windows with WSL2 (Ubuntu recommended)
+- `dts` (Duckietown Shell) installed inside WSL
+- Docker Desktop with WSL2 backend enabled
+- Robot hostname (e.g. `nasavpns`) on the same WiFi as your machine
 
-## How to use it
+---
 
-### 1. Fork this repository
+## Setup
 
-Use the fork button in the top-right corner of the github page to fork this template repository.
+### 1. Install dts (if not already done)
 
+Open a WSL terminal and run:
 
-### 2. Create a new repository
+```bash
+pip3 install --no-cache-dir --user -U duckietown-shell
+dts --set-version daffy
+dts update
+```
 
-Create a new repository on github.com while
-specifying the newly forked template repository as
-a template for your new repository.
+### 2. Clone the repo
 
+```bash
+git clone https://github.com/aarushpawar/DuckieBot.git
+cd DuckieBot
+```
 
-### 3. Define dependencies
+---
 
-List the dependencies in the files `dependencies-apt.txt` and
-`dependencies-py3.txt` (apt packages and pip packages respectively).
+## Build and run
 
+### Build on the robot
 
-### 4. Place your code
+```bash
+dts devel build -f -H HOSTNAME
+```
 
-Place your code in the directory `/packages/` of
-your new repository.
+Replace `HOSTNAME` with your robot's name (e.g. `nasavpns`).
 
+### Run on the robot
 
-### 5. Setup launchers
+```bash
+dts devel run -H HOSTNAME
+```
 
-The directory `/launchers` can contain as many launchers (launching scripts)
-as you want. A default launcher called `default.sh` must always be present.
+---
 
-If you create an executable script (i.e., a file with a valid shebang statement)
-a launcher will be created for it. For example, the script file 
-`/launchers/my-launcher.sh` will be available inside the Docker image as the binary
-`dt-launcher-my-launcher`.
+## Sending commands
 
-When launching a new container, you can simply provide `dt-launcher-my-launcher` as
-command.
+Once the container is running, send shape commands via ROS topic from a separate WSL terminal:
+
+```bash
+dts start_gui_tools HOSTNAME
+```
+
+Then inside that shell:
+
+```bash
+rostopic pub /HOSTNAME/shape_driver_node/command std_msgs/String "data: 'circle'"
+rostopic pub /HOSTNAME/shape_driver_node/command std_msgs/String "data: 'rectangle'"
+rostopic pub /HOSTNAME/shape_driver_node/command std_msgs/String "data: 'triangle'"
+rostopic pub /HOSTNAME/shape_driver_node/command std_msgs/String "data: 'stop'"
+```
+
+---
+
+## WSL-specific notes
+
+- Run all `dts` and `git` commands inside WSL, not PowerShell or CMD
+- Docker Desktop must be running on Windows with the WSL2 integration enabled for your distro (Docker Desktop > Settings > Resources > WSL Integration)
+- If `dts fleet discover` doesn't find the robot, make sure your WSL network adapter and Windows are on the same WiFi network. Bridged networking works best; if using NAT (default), mDNS may not resolve — use the robot's IP address directly instead
+
+---
+
+## Robot access
+
+```bash
+ssh duckie@HOSTNAME.local   # password: quackquack
+dts fleet discover          # find robots on the network
+```
