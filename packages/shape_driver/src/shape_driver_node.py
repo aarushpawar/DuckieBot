@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 
 # Update NODE_VERSION on every change (see CLAUDE.md § Versioning)
-NODE_VERSION = "1.2.0"
+NODE_VERSION = "1.3.0"
 
 import os
 import rospy
 from duckietown.dtros import DTROS, NodeType
 from duckietown_msgs.msg import Twist2DStamped
 from std_msgs.msg import String
+
+CIRCLE_LAPS = 2
+CIRCLE_LAP_DURATION = 8.0  # seconds per lap (tune to taste)
 
 
 class ShapeDriverNode(DTROS):
@@ -27,12 +30,12 @@ class ShapeDriverNode(DTROS):
             self.cb_command
         )
 
-        self.current_shape = "rectangle"
-        self.log(f"Shape Driver v{NODE_VERSION} ready. Running rectangle. Publish to ~command to change: circle, rectangle, triangle, stop")
+        self.current_shape = "circle"
+        self.log(f"Shape Driver v{NODE_VERSION} ready. Will do {CIRCLE_LAPS} circles then drive straight.")
 
     def cb_command(self, msg):
         cmd = msg.data.strip().lower()
-        if cmd in ["circle", "rectangle", "triangle", "stop"]:
+        if cmd in ["circle", "straight", "stop"]:
             self.current_shape = cmd
             self.log(f"Switching to: {cmd}")
         else:
@@ -45,48 +48,32 @@ class ShapeDriverNode(DTROS):
         msg.omega = omega
         self.pub_car_cmd.publish(msg)
 
-    def drive_circle(self):
-        self.publish_cmd(0.2, 2.0)
-        rospy.sleep(0.1)
-
-    def drive_rectangle(self):
-        for _ in range(4):
-            if self.current_shape != "rectangle":
+    def drive_circles_then_straight(self):
+        self.log("Starting circles...")
+        for lap in range(CIRCLE_LAPS):
+            if self.current_shape != "circle":
                 return
-            t_end = rospy.Time.now() + rospy.Duration(2.0)
-            while rospy.Time.now() < t_end and self.current_shape == "rectangle":
-                self.publish_cmd(0.2, 0.0)
-                rospy.sleep(0.1)
-            t_end = rospy.Time.now() + rospy.Duration(1.2)
-            while rospy.Time.now() < t_end and self.current_shape == "rectangle":
-                self.publish_cmd(0.0, 3.0)
+            self.log(f"Circle lap {lap + 1}/{CIRCLE_LAPS}")
+            t_end = rospy.Time.now() + rospy.Duration(CIRCLE_LAP_DURATION)
+            while rospy.Time.now() < t_end:
+                if self.current_shape != "circle":
+                    return
+                self.publish_cmd(0.2, 2.0)
                 rospy.sleep(0.1)
 
-    def drive_triangle(self):
-        for _ in range(3):
-            if self.current_shape != "triangle":
-                return
-            t_end = rospy.Time.now() + rospy.Duration(2.0)
-            while rospy.Time.now() < t_end and self.current_shape == "triangle":
-                self.publish_cmd(0.2, 0.0)
-                rospy.sleep(0.1)
-            t_end = rospy.Time.now() + rospy.Duration(1.6)
-            while rospy.Time.now() < t_end and self.current_shape == "triangle":
-                self.publish_cmd(0.0, 3.0)
-                rospy.sleep(0.1)
+        self.log("Circles done. Driving straight.")
+        self.current_shape = "straight"
 
     def run(self):
-        rate = rospy.Rate(10)
         while not rospy.is_shutdown():
             if self.current_shape == "circle":
-                self.drive_circle()
-            elif self.current_shape == "rectangle":
-                self.drive_rectangle()
-            elif self.current_shape == "triangle":
-                self.drive_triangle()
+                self.drive_circles_then_straight()
+            elif self.current_shape == "straight":
+                self.publish_cmd(0.2, 0.0)
+                rospy.sleep(0.1)
             else:
                 self.publish_cmd(0.0, 0.0)
-            rate.sleep()
+                rospy.sleep(0.1)
 
     def on_shutdown(self):
         self.publish_cmd(0.0, 0.0)
