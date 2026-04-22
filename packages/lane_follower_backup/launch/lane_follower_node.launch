@@ -1,6 +1,6 @@
 <launch>
     <arg name="veh" doc="Name of vehicle. i.e. duckiebot"/>
-    <arg name="pkg_name" value="lane_follower"/>
+    <arg name="pkg_name" value="lane_follower_backup"/>
     <arg name="node_name" default="lane_follower_node"/>
 
     <group ns="$(arg veh)">
