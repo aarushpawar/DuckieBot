@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DUCKIE CONTROL STATION</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@300;400;600;700;800&display=swap');
+
+  :root {
+    --bg:         #0d1117;
+    --bg2:        #0a0e14;
+    --surface:    #131920;
+    --surface2:   #1a2332;
+    --border:     #1e2d3d;
+    --border2:    #243447;
+    --teal:       #00d4c8;
+    --teal-dim:   #00897b;
+    --cyan:       #38bdf8;
+    --green:      #22c55e;
+    --amber:      #f59e0b;
+    --amber-dim:  #92400e;
+    --red:        #ef4444;
+    --red-dim:    #7f1d1d;
+    --muted:      #4a6178;
+    --text:       #cdd9e5;
+    --text-dim:   #768fa3;
+    --mono:       'Share Tech Mono', monospace;
+    --ui:         'Barlow Condensed', sans-serif;
+    --body:       'Barlow', sans-serif;
+    --glow-teal:  0 0 12px rgba(0,212,200,0.4);
+    --glow-amber: 0 0 12px rgba(245,158,11,0.4);
+    --glow-red:   0 0 12px rgba(239,68,68,0.4);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 999; pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.04) 2px,
+      rgba(0,0,0,0.04) 4px
+    );
+  }
+
+  /* top noise grain */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 998; pointer-events: none; opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, rgba(0,212,200,0.04) 0%, transparent 60%);
+    position: relative; overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--teal), var(--cyan));
+    box-shadow: var(--glow-teal);
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .duck-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--teal), var(--cyan));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; box-shadow: var(--glow-teal);
+    animation: iconPulse 3s ease-in-out infinite;
+  }
+  @keyframes iconPulse {
+    0%,100% { box-shadow: 0 0 8px rgba(0,212,200,0.3); }
+    50% { box-shadow: 0 0 20px rgba(0,212,200,0.7); }
+  }
+  .header-title { font-family: var(--ui); font-weight: 800; font-size: 20px; letter-spacing: 3px; text-transform: uppercase; color: var(--teal); }
+  .header-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .clock { font-family: var(--mono); font-size: 13px; color: var(--text-dim); }
+  .conn-badge {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border2);
+    font-family: var(--mono); font-size: 11px;
+  }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .conn-badge.connected .conn-dot { background: var(--green); box-shadow: 0 0 6px var(--green); animation: blink 2s ease-in-out infinite; }
+  .conn-badge.error .conn-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── MAIN GRID ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 300px;
+    grid-template-rows: auto 1fr auto;
+    gap: 1px;
+    background: var(--border);
+    height: calc(100vh - 57px);
+  }
+  .panel {
+    background: var(--surface);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .panel-label {
+    font-family: var(--ui); font-weight: 700; font-size: 11px;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .panel-label .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .panel-body { padding: 14px; overflow-y: auto; flex: 1; }
+  .panel-body::-webkit-scrollbar { width: 4px; }
+  .panel-body::-webkit-scrollbar-track { background: transparent; }
+  .panel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── LEFT PANEL: CONNECTION ── */
+  .left-col { grid-column: 1; grid-row: 1 / 4; }
+
+  .hostname-input-wrap { position: relative; margin-bottom: 16px; }
+  .hostname-input-wrap label { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 5px; letter-spacing: 1px; }
+  .hostname-input {
+    width: 100%; padding: 8px 12px;
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 4px; color: var(--teal); font-family: var(--mono); font-size: 13px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .hostname-input:focus { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(0,212,200,0.15); }
+
+  .connect-btn {
+    width: 100%; padding: 10px;
+    background: linear-gradient(135deg, var(--teal-dim), var(--teal));
+    border: none; border-radius: 4px; cursor: pointer;
+    font-family: var(--ui); font-weight: 700; font-size: 13px;
+    letter-spacing: 2px; text-transform: uppercase; color: #000;
+    transition: all 0.2s; margin-bottom: 18px;
+  }
+  .connect-btn:hover { filter: brightness(1.15); box-shadow: var(--glow-teal); }
+  .connect-btn:active { transform: scale(0.98); }
+  .connect-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* step tracker */
+  .steps { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+  .step {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 4px;
+    border: 1px solid transparent;
+    font-family: var(--mono); font-size: 11px;
+    transition: all 0.3s;
+  }
+  .step.pending { color: var(--muted); border-color: var(--border); }
+  .step.running { color: var(--amber); border-color: var(--amber-dim); background: rgba(245,158,11,0.05); }
+  .step.done    { color: var(--green); border-color: rgba(34,197,94,0.2); background: rgba(34,197,94,0.04); }
+  .step.error   { color: var(--red); border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.05); }
+  .step-icon { font-size: 12px; width: 16px; text-align: center; flex-shrink: 0; }
+  .step.running .step-icon { animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* resolved IP display */
+  .ip-display {
+    padding: 8px 10px; border-radius: 4px;
+    background: var(--bg2); border: 1px solid var(--border2);
+    font-family: var(--mono); font-size: 12px; color: var(--text-dim);
+    margin-bottom: 14px; min-height: 34px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ip-display.resolved { border-color: var(--teal-dim); color: var(--teal); }
+  .ip-key { color: var(--muted); font-size: 10px; letter-spacing: 1px; }
+
+  /* dts launch section */
+  .dts-controls { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .dts-btn {
+    padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border2);
+    background: var(--bg2); cursor: pointer;
+    font-family: var(--ui); font-weight: 600; font-size: 12px;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+    color: var(--text-dim);
+  }
+  .dts-btn:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); background: rgba(56,189,248,0.06); }
+  .dts-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .dts-btn.danger:hover:not(:disabled) { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.06); }
+
+  /* ── CENTER: CAMERA + METRICS ── */
+  .center-col { grid-column: 2; grid-row: 1; }
+  .metrics-row { grid-column: 2; grid-row: 2; }
+  .log-row { grid-column: 2; grid-row: 3; }
+
+  /* camera feed */
+  .camera-panel {
+    grid-column: 2; grid-row: 1;
+    display: flex; flex-direction: column;
+  }
+  .camera-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: var(--bg2); position: relative; overflow: hidden; min-height: 200px;
+    padding: 0;
+  }
+  .camera-feed {
+    max-width: 100%; max-height: 100%; object-fit: contain;
+    display: block;
+    image-rendering: pixelated;
+  }
+  .camera-overlay {
+    position: absolute; inset: 0; pointer-events: none;
+    border: 2px solid transparent;
+    transition: border-color 0.3s;
+  }
+  .camera-overlay.active { border-color: rgba(0,212,200,0.25); }
+  .cam-badge {
+    position: absolute; top: 10px; left: 10px;
+    background: rgba(0,0,0,0.7); border: 1px solid var(--border2);
+    padding: 3px 8px; border-radius: 3px;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .cam-badge.live { color: var(--green); border-color: rgba(34,197,94,0.3); }
+  .cam-badge .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 1s ease-in-out infinite; }
+  .cam-fps { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); border: 1px solid var(--border2); padding: 3px 8px; border-radius: 3px; font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+  .cam-state { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.75); border: 1px solid var(--border2); padding: 3px 8px; border-radius: 3px; font-family: var(--mono); font-size: 10px; }
+  .cam-state.FOLLOW_YELLOW { color: var(--amber); border-color: rgba(245,158,11,0.3); }
+  .cam-state.WHITE_RECOVERY { color: var(--cyan); border-color: rgba(56,189,248,0.3); }
+  .cam-state.LOST { color: var(--red); border-color: rgba(239,68,68,0.3); }
+  .no-feed {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    color: var(--muted); font-family: var(--mono); font-size: 12px; width: 100%; height: 100%;
+    min-height: 200px;
+  }
+  .no-feed-icon { font-size: 40px; opacity: 0.3; }
+
+  /* legend */
+  .legend { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+  .legend-swatch { width: 20px; height: 3px; border-radius: 2px; }
+
+  /* metrics row */
+  .metrics-row {
+    grid-column: 2; grid-row: 2;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
+    background: var(--border); flex-shrink: 0;
+    max-height: 90px;
+  }
+  .metric-card {
+    background: var(--surface); padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .metric-label { font-family: var(--ui); font-size: 9px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  .metric-value { font-family: var(--mono); font-size: 22px; color: var(--text); line-height: 1; }
+  .metric-unit { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+  .metric-bar-wrap { height: 2px; background: var(--border2); border-radius: 1px; margin-top: 4px; }
+  .metric-bar { height: 100%; border-radius: 1px; transition: width 0.3s; background: var(--teal); }
+
+  /* ── RIGHT PANEL: CONTROLS + KINEMATICS ── */
+  .right-col { grid-column: 3; grid-row: 1 / 4; }
+
+  /* big control buttons */
+  .control-section { margin-bottom: 20px; }
+  .section-label { font-family: var(--ui); font-weight: 700; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+
+  .lane-btn {
+    width: 100%; padding: 14px;
+    border: 2px solid; border-radius: 6px; cursor: pointer;
+    font-family: var(--ui); font-weight: 800; font-size: 16px;
+    letter-spacing: 3px; text-transform: uppercase;
+    transition: all 0.2s; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    position: relative; overflow: hidden;
+  }
+  .lane-btn::before {
+    content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.2s;
+    background: currentColor;
+  }
+  .lane-btn:hover::before { opacity: 0.07; }
+  .lane-btn:active { transform: scale(0.98); }
+  .lane-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .btn-start { background: rgba(34,197,94,0.08); border-color: var(--green); color: var(--green); }
+  .btn-start:hover:not(:disabled) { box-shadow: 0 0 20px rgba(34,197,94,0.3); }
+  .btn-stop  { background: rgba(239,68,68,0.08); border-color: var(--red); color: var(--red); }
+  .btn-stop:hover:not(:disabled)  { box-shadow: 0 0 20px rgba(239,68,68,0.3); }
+
+  .status-indicator {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 4px;
+    border: 1px solid var(--border2); background: var(--bg2);
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .status-indicator.active { border-color: rgba(34,197,94,0.3); color: var(--green); background: rgba(34,197,94,0.06); }
+  .status-indicator.stopped { border-color: rgba(239,68,68,0.25); color: var(--red); background: rgba(239,68,68,0.05); }
+  .status-led { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .status-indicator.active .status-led { background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 2s ease-in-out infinite; }
+  .status-indicator.stopped .status-led { background: var(--red); }
+
+  /* centroid bars */
+  .centroid-section { margin-bottom: 18px; }
+  .centroid-track {
+    height: 24px; background: var(--bg2); border-radius: 4px;
+    border: 1px solid var(--border2); position: relative; overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .centroid-track-label { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 9px; color: var(--muted); z-index: 1; }
+  .centroid-center-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border2); }
+  .centroid-marker {
+    position: absolute; top: 3px; bottom: 3px; width: 4px; border-radius: 2px;
+    transition: left 0.15s ease-out;
+    transform: translateX(-50%);
+  }
+  .centroid-y { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .centroid-w { background: rgba(200,200,200,0.8); box-shadow: 0 0 4px rgba(255,255,255,0.4); }
+  .centroid-none { opacity: 0.2; }
+  .centroid-pct { font-family: var(--mono); font-size: 10px; color: var(--text-dim); text-align: right; }
+
+  /* kinematics */
+  .kin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .kin-card {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+    padding: 8px 10px;
+  }
+  .kin-name { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-bottom: 2px; }
+  .kin-val { font-family: var(--mono); font-size: 15px; color: var(--text); }
+
+  /* divider */
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+  /* ── LOG CONSOLE ── */
+  .log-panel {
+    grid-column: 1 / 3; grid-row: 3;
+    display: flex; flex-direction: column; height: 160px;
+  }
+  .log-body {
+    flex: 1; overflow-y: auto; padding: 8px 14px;
+    font-family: var(--mono); font-size: 11px; line-height: 1.7;
+    background: var(--bg2);
+  }
+  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  .log-line { display: flex; gap: 10px; }
+  .log-ts { color: var(--muted); flex-shrink: 0; }
+  .log-msg { color: var(--text-dim); word-break: break-all; }
+  .log-msg.info  { color: var(--text-dim); }
+  .log-msg.ok    { color: var(--green); }
+  .log-msg.warn  { color: var(--amber); }
+  .log-msg.error { color: var(--red); }
+  .log-msg.sys   { color: var(--teal); }
+  .log-controls { display: flex; align-items: center; gap: 8px; padding: 0 8px; }
+  .log-clear-btn { padding: 2px 8px; background: transparent; border: 1px solid var(--border2); border-radius: 3px; color: var(--muted); font-family: var(--mono); font-size: 10px; cursor: pointer; }
+  .log-clear-btn:hover { border-color: var(--text-dim); color: var(--text-dim); }
+  .log-count { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-left: auto; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .fade-in { animation: fadeIn 0.3s ease forwards; }
+
+  /* responsive adjustments */
+  @media (max-width: 1100px) {
+    .main-grid { grid-template-columns: 240px 1fr 260px; }
+    .metrics-row { grid-template-columns: repeat(3, 1fr); max-height: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <div class="duck-icon">🦆</div>
+    <div>
+      <div class="header-title">Duckie Control Station</div>
+      <div class="header-sub" id="header-sub">OFFLINE — connect to begin</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="conn-badge" id="conn-badge">
+      <div class="conn-dot"></div>
+      <span id="conn-text">DISCONNECTED</span>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- LEFT: Connection -->
+  <div class="panel left-col">
+    <div class="panel-header">
+      <span class="panel-label"><span class="dot" style="background:var(--teal)"></span>CONNECTION</span>
+    </div>
+    <div class="panel-body">
+
+      <div class="hostname-input-wrap">
+        <label>BOT HOSTNAME</label>
+        <input class="hostname-input" id="hostname" type="text" value="nasavpns" spellcheck="false" autocomplete="off"/>
+      </div>
+
+      <button class="connect-btn" id="connect-btn" onclick="startConnect()">◈ CONNECT</button>
+
+      <div class="steps" id="steps">
+        <div class="step pending" id="step-ping">
+          <span class="step-icon">○</span>
+          <span>Resolve hostname</span>
+        </div>
+        <div class="step pending" id="step-bridge">
+          <span class="step-icon">○</span>
+          <span>Reach HTTP bridge :8765</span>
+        </div>
+        <div class="step pending" id="step-ros">
+          <span class="step-icon">○</span>
+          <span>ROS node alive</span>
+        </div>
+        <div class="step pending" id="step-cam">
+          <span class="step-icon">○</span>
+          <span>Camera stream live</span>
+        </div>
+      </div>
+
+      <div class="ip-display" id="ip-display">
+        <span class="ip-key">IP ›</span>
+        <span id="ip-val">—</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-label">DTS LAUNCHER</div>
+      <div class="dts-controls">
+        <button class="dts-btn" id="btn-dts-run" onclick="launchDts()" disabled>▶ dts devel run</button>
+        <button class="dts-btn" id="btn-dts-build" onclick="buildDts()" disabled>⚙ dts devel build</button>
+        <button class="dts-btn danger" id="btn-dts-stop" onclick="stopDts()" disabled>■ stop container</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-label">VEHICLE</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);line-height:1.8;">
+        <div><span style="color:var(--muted)">NAME </span><span id="info-veh">—</span></div>
+        <div><span style="color:var(--muted)">ADDR </span><span id="info-addr">—</span></div>
+        <div><span style="color:var(--muted)">UPTIME </span><span id="info-uptime">—</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CENTER: Camera -->
+  <div class="panel camera-panel" style="grid-column:2;grid-row:1;">
+    <div class="panel-header">
+      <span class="panel-label"><span class="dot" style="background:var(--cyan)"></span>CAMERA — LANE DETECTION VIEW</span>
+      <div style="display:flex;gap:8px;">
+        <button onclick="toggleStream()" id="stream-toggle-btn" style="padding:2px 8px;background:transparent;border:1px solid var(--border2);border-radius:3px;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;">MJPEG</button>
+        <button onclick="refreshFrame()" style="padding:2px 8px;background:transparent;border:1px solid var(--border2);border-radius:3px;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;">↻ SNAP</button>
+      </div>
+    </div>
+    <div class="camera-wrap" id="camera-wrap">
+      <div class="no-feed" id="no-feed">
+        <div class="no-feed-icon">📷</div>
+        <div>No feed — connect to bot</div>
+      </div>
+      <img class="camera-feed" id="camera-feed" style="display:none;" alt="debug feed"/>
+      <div class="camera-overlay" id="camera-overlay"></div>
+      <div class="cam-badge" id="cam-badge" style="display:none;">
+        <div class="live-dot"></div>LIVE
+      </div>
+      <div class="cam-fps" id="cam-fps" style="display:none;"></div>
+      <div class="cam-state" id="cam-state" style="display:none;"></div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--amber);"></div>Yellow line (attract)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(200,200,200,0.8);"></div>White line (repel)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--teal);width:2px;"></div>Centroid</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--muted);"></div>Center ref</div>
+    </div>
+  </div>
+
+  <!-- CENTER: Metrics -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="metric-label">LINEAR V</div>
+      <div class="metric-value" id="m-v">0.00</div>
+      <div class="metric-unit">m/s</div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-v" style="width:0%;background:var(--teal)"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">OMEGA ω</div>
+      <div class="metric-value" id="m-omega">0.00</div>
+      <div class="metric-unit">rad/s</div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-omega" style="width:0%;background:var(--cyan)"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">YELLOW CX</div>
+      <div class="metric-value" id="m-ycx">—</div>
+      <div class="metric-unit">normalized</div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-ycx" style="width:0%;background:var(--amber)"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">WHITE CX</div>
+      <div class="metric-value" id="m-wcx">—</div>
+      <div class="metric-unit">normalized</div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-wcx" style="width:0%;background:rgba(200,200,200,0.7)"></div></div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">CAM FPS</div>
+      <div class="metric-value" id="m-fps">—</div>
+      <div class="metric-unit">frames/sec</div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-fps" style="width:0%;background:var(--green)"></div></div>
+    </div>
+  </div>
+
+  <!-- LOG CONSOLE (bottom, spanning left+center) -->
+  <div class="panel log-panel">
+    <div class="panel-header" style="padding:5px 14px;">
+      <span class="panel-label"><span class="dot" style="background:var(--muted)"></span>CONSOLE LOG</span>
+      <div class="log-controls">
+        <button class="log-clear-btn" onclick="clearLog()">CLEAR</button>
+        <span class="log-count" id="log-count">0 lines</span>
+      </div>
+    </div>
+    <div class="log-body" id="log-body"></div>
+  </div>
+
+  <!-- RIGHT: Controls + Kinematics -->
+  <div class="panel right-col">
+    <div class="panel-header">
+      <span class="panel-label"><span class="dot" style="background:var(--green)"></span>CONTROLS</span>
+    </div>
+    <div class="panel-body">
+
+      <div class="status-indicator" id="lane-status">
+        <div class="status-led"></div>
+        <span id="lane-status-text">LANE FOLLOWING — UNKNOWN</span>
+      </div>
+
+      <div class="control-section">
+        <div class="section-label">LANE FOLLOWING</div>
+        <button class="lane-btn btn-start" id="btn-start" onclick="sendCommand('start')" disabled>▶ START</button>
+        <button class="lane-btn btn-stop"  id="btn-stop"  onclick="sendCommand('stop')"  disabled>■ STOP</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="centroid-section">
+        <div class="section-label">CENTROID POSITIONS</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;">YELLOW LINE (attract)</div>
+        <div class="centroid-track">
+          <span class="centroid-track-label">Y</span>
+          <div class="centroid-center-line"></div>
+          <div class="centroid-marker centroid-y centroid-none" id="marker-y" style="left:50%"></div>
+        </div>
+        <div class="centroid-pct" id="pct-y">—</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;margin-top:8px;">WHITE LINE (repel)</div>
+        <div class="centroid-track">
+          <span class="centroid-track-label">W</span>
+          <div class="centroid-center-line"></div>
+          <div class="centroid-marker centroid-w centroid-none" id="marker-w" style="left:50%"></div>
+        </div>
+        <div class="centroid-pct" id="pct-w">—</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-label">KINEMATICS CALIBRATION</div>
+      <div class="kin-grid" id="kin-grid">
+        <div class="kin-card"><div class="kin-name">gain</div><div class="kin-val" id="kin-gain">—</div></div>
+        <div class="kin-card"><div class="kin-name">trim</div><div class="kin-val" id="kin-trim">—</div></div>
+        <div class="kin-card"><div class="kin-name">baseline</div><div class="kin-val" id="kin-baseline">—</div></div>
+        <div class="kin-card"><div class="kin-name">radius</div><div class="kin-val" id="kin-radius">—</div></div>
+        <div class="kin-card"><div class="kin-name">k</div><div class="kin-val" id="kin-k">—</div></div>
+        <div class="kin-card"><div class="kin-name">limit</div><div class="kin-val" id="kin-limit">—</div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="section-label">CONTROL PARAMS</div>
+      <div class="kin-grid">
+        <div class="kin-card"><div class="kin-name">v_base</div><div class="kin-val" id="p-v_base">—</div></div>
+        <div class="kin-card"><div class="kin-name">k_p</div><div class="kin-val" id="p-k_p">—</div></div>
+        <div class="kin-card" style="grid-column:1/3;"><div class="kin-name">k_repel</div><div class="kin-val" id="p-k_repel">—</div></div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- end main-grid -->
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+let botHost = 'nasavpns';
+let bridgeBase = null;
+let connected = false;
+let pollTimer = null;
+let imgTimer = null;
+let useStream = false;
+let logLines = 0;
+let connectTime = null;
+
+// ── CLOCK ──────────────────────────────────────────────
+function tickClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toTimeString().split(' ')[0];
+}
+setInterval(tickClock, 1000);
+tickClock();
+
+// ── LOG ────────────────────────────────────────────────
+function log(msg, level='info') {
+  const body = document.getElementById('log-body');
+  const now = new Date().toTimeString().split(' ')[0];
+  const line = document.createElement('div');
+  line.className = 'log-line fade-in';
+  line.innerHTML = `<span class="log-ts">${now}</span><span class="log-msg ${level}">${escHtml(msg)}</span>`;
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+  logLines++;
+  document.getElementById('log-count').textContent = `${logLines} lines`;
+  // keep max 500 lines
+  while (body.children.length > 500) body.removeChild(body.firstChild);
+}
+function clearLog() {
+  document.getElementById('log-body').innerHTML = '';
+  logLines = 0;
+  document.getElementById('log-count').textContent = '0 lines';
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── STEP TRACKER ───────────────────────────────────────
+function setStep(id, state, label) {
+  const el = document.getElementById(id);
+  el.className = `step ${state}`;
+  const icons = { pending: '○', running: '↻', done: '✓', error: '✗' };
+  el.querySelector('.step-icon').textContent = icons[state] || '○';
+  if (label) el.querySelector('span:last-child').textContent = label;
+}
+
+// ── CONNECTION ─────────────────────────────────────────
+async function startConnect() {
+  botHost = document.getElementById('hostname').value.trim() || 'nasavpns';
+  bridgeBase = null;
+  connected = false;
+
+  document.getElementById('connect-btn').disabled = true;
+  ['step-ping','step-bridge','step-ros','step-cam'].forEach(s => setStep(s,'pending', null));
+  setConnBadge('connecting');
+  log(`Connecting to ${botHost}...`, 'sys');
+
+  // Step 1: Resolve / ping — we attempt to reach the HTTP bridge directly
+  // (browser can't ping; we just try HTTP and interpret the result)
+  setStep('step-ping', 'running', `Resolving ${botHost}.local`);
+  log(`Trying ${botHost}.local ...`);
+
+  const candidates = [
+    `http://${botHost}.local:8765`,
+    `http://${botHost}:8765`,
+  ];
+
+  let reachable = null;
+  for (const url of candidates) {
+    try {
+      const r = await fetchWithTimeout(`${url}/status`, 3000);
+      if (r.ok) { reachable = url; break; }
+    } catch(_) {}
+  }
+
+  if (!reachable) {
+    setStep('step-ping', 'error', `Cannot reach ${botHost}`);
+    setStep('step-bridge', 'error', 'Bridge unreachable');
+    log(`ERROR: Cannot reach ${botHost}.local:8765 or ${botHost}:8765`, 'error');
+    log('Make sure the container is running with --network=host or port 8765 exposed.', 'warn');
+    setConnBadge('error');
+    document.getElementById('connect-btn').disabled = false;
+    return;
+  }
+
+  bridgeBase = reachable;
+  const resolvedAddr = reachable.replace('/status','').replace('http://','').split(':')[0];
+  document.getElementById('ip-val').textContent = resolvedAddr;
+  document.getElementById('ip-display').classList.add('resolved');
+  document.getElementById('info-addr').textContent = resolvedAddr;
+  setStep('step-ping', 'done', `Resolved → ${resolvedAddr}`);
+  log(`Reached bridge at ${reachable}`, 'ok');
+
+  // Step 2: Bridge
+  setStep('step-bridge', 'running', 'Checking HTTP bridge');
+  let statusData;
+  try {
+    const r = await fetchWithTimeout(`${bridgeBase}/status`, 3000);
+    statusData = await r.json();
+    setStep('step-bridge', 'done', 'HTTP bridge :8765 OK');
+    log(`Bridge OK — veh=${statusData.veh}`, 'ok');
+  } catch(e) {
+    setStep('step-bridge', 'error', 'Bridge response invalid');
+    log(`Bridge error: ${e}`, 'error');
+    setConnBadge('error');
+    document.getElementById('connect-btn').disabled = false;
+    return;
+  }
+
+  // Step 3: ROS node
+  setStep('step-ros', 'running', 'Checking ROS node');
+  if (statusData && statusData.veh) {
+    document.getElementById('info-veh').textContent = statusData.veh;
+    connectTime = Date.now();
+    setStep('step-ros', 'done', `Node alive — ${statusData.veh}`);
+    log(`ROS node alive. State: ${statusData.state}`, 'ok');
+  } else {
+    setStep('step-ros', 'error', 'No ROS node data');
+  }
+
+  // Step 4: Camera
+  setStep('step-cam', 'running', 'Checking camera feed');
+  try {
+    const r = await fetchWithTimeout(`${bridgeBase}/debug_image.jpg`, 4000);
+    if (r.ok) {
+      setStep('step-cam', 'done', 'Camera feed live');
+      log('Camera stream available.', 'ok');
+    } else {
+      setStep('step-cam', 'error', `Camera: HTTP ${r.status}`);
+      log(`Camera not ready yet (${r.status}) — will retry.`, 'warn');
+    }
+  } catch(e) {
+    setStep('step-cam', 'error', 'No camera frame yet');
+    log('Camera frame not yet available — will retry once running.', 'warn');
+  }
+
+  // All done
+  connected = true;
+  setConnBadge('connected');
+  document.getElementById('header-sub').textContent = `ONLINE — ${botHost}.local`;
+  document.getElementById('connect-btn').disabled = false;
+  document.getElementById('connect-btn').textContent = '◈ RECONNECT';
+  enableControls();
+  startPolling();
+  startImageRefresh();
+  updateStatus(statusData);
+}
+
+function setConnBadge(state) {
+  const badge = document.getElementById('conn-badge');
+  const txt = document.getElementById('conn-text');
+  badge.className = 'conn-badge';
+  if (state === 'connected') { badge.classList.add('connected'); txt.textContent = 'CONNECTED'; }
+  else if (state === 'error') { badge.classList.add('error'); txt.textContent = 'ERROR'; }
+  else { txt.textContent = 'CONNECTING…'; }
+}
+
+function enableControls() {
+  ['btn-start','btn-stop','btn-dts-run','btn-dts-build','btn-dts-stop'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = false;
+  });
+}
+
+// ── POLLING ────────────────────────────────────────────
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    if (!connected || !bridgeBase) return;
+    try {
+      const r = await fetchWithTimeout(`${bridgeBase}/status`, 2000);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      updateStatus(data);
+    } catch(e) {
+      // silent — don't spam log
+    }
+  }, 500);
+}
+
+function updateStatus(data) {
+  if (!data) return;
+
+  // Metrics
+  const v = data.v ?? 0;
+  const omega = data.omega ?? 0;
+  const ycx = data.y_center;
+  const wcx = data.w_center;
+  const fps = data.fps ?? 0;
+
+  document.getElementById('m-v').textContent     = v.toFixed(3);
+  document.getElementById('m-omega').textContent  = omega.toFixed(3);
+  document.getElementById('m-ycx').textContent    = ycx !== null && ycx !== undefined ? ycx.toFixed(3) : '—';
+  document.getElementById('m-wcx').textContent    = wcx !== null && wcx !== undefined ? wcx.toFixed(3) : '—';
+  document.getElementById('m-fps').textContent    = fps.toFixed(1);
+
+  // Metric bars
+  document.getElementById('mb-v').style.width     = `${Math.min(100, (v / 0.3) * 100)}%`;
+  document.getElementById('mb-omega').style.width  = `${Math.min(100, (Math.abs(omega) / 5) * 100)}%`;
+  document.getElementById('mb-ycx').style.width   = ycx !== null && ycx !== undefined ? `${ycx * 100}%` : '0%';
+  document.getElementById('mb-wcx').style.width   = wcx !== null && wcx !== undefined ? `${wcx * 100}%` : '0%';
+  document.getElementById('mb-fps').style.width   = `${Math.min(100, (fps / 30) * 100)}%`;
+
+  // Centroid bars
+  updateCentroid('y', ycx);
+  updateCentroid('w', wcx);
+
+  // State camera label
+  const stateEl = document.getElementById('cam-state');
+  if (data.state) {
+    stateEl.textContent = data.state;
+    stateEl.className = `cam-state ${data.state}`;
+    stateEl.style.display = 'block';
+  }
+
+  // FPS badge
+  document.getElementById('cam-fps').textContent = `${fps} fps`;
+
+  // Lane active
+  const active = data.active;
+  const laneStatus = document.getElementById('lane-status');
+  const laneText = document.getElementById('lane-status-text');
+  if (active) {
+    laneStatus.className = 'status-indicator active';
+    laneText.textContent = 'LANE FOLLOWING — ACTIVE';
+  } else {
+    laneStatus.className = 'status-indicator stopped';
+    laneText.textContent = 'LANE FOLLOWING — STOPPED';
+  }
+
+  // Kinematics
+  if (data.kinematics) {
+    const k = data.kinematics;
+    ['gain','trim','baseline','radius','k','limit'].forEach(key => {
+      const el = document.getElementById(`kin-${key}`);
+      if (el) el.textContent = k[key] !== undefined ? k[key] : '—';
+    });
+  }
+
+  // Params
+  if (data.params) {
+    const p = data.params;
+    ['v_base','k_p','k_repel'].forEach(key => {
+      const el = document.getElementById(`p-${key}`);
+      if (el) el.textContent = p[key] !== undefined ? p[key] : '—';
+    });
+  }
+
+  // Uptime
+  if (connectTime) {
+    const sec = Math.floor((Date.now() - connectTime) / 1000);
+    const m = Math.floor(sec / 60), s = sec % 60;
+    document.getElementById('info-uptime').textContent = `${m}m ${s}s`;
+  }
+}
+
+function updateCentroid(which, val) {
+  const marker = document.getElementById(`marker-${which}`);
+  const pct = document.getElementById(`pct-${which}`);
+  if (val === null || val === undefined) {
+    marker.classList.add('centroid-none');
+    pct.textContent = '—';
+  } else {
+    marker.classList.remove('centroid-none');
+    marker.style.left = `${val * 100}%`;
+    pct.textContent = (val * 100).toFixed(1) + '%';
+  }
+}
+
+// ── IMAGE REFRESH ──────────────────────────────────────
+function startImageRefresh() {
+  if (useStream) {
+    activateMjpegStream();
+  } else {
+    activateSnapPolling();
+  }
+}
+
+function activateMjpegStream() {
+  if (!bridgeBase) return;
+  const feed = document.getElementById('camera-feed');
+  feed.src = `${bridgeBase}/debug_stream`;
+  feed.style.display = 'block';
+  document.getElementById('no-feed').style.display = 'none';
+  document.getElementById('cam-badge').style.display = 'flex';
+  document.getElementById('cam-fps').style.display = 'block';
+  document.getElementById('camera-overlay').classList.add('active');
+  if (imgTimer) clearInterval(imgTimer);
+}
+
+function activateSnapPolling() {
+  if (!bridgeBase) return;
+  const feed = document.getElementById('camera-feed');
+  feed.style.display = 'block';
+  document.getElementById('no-feed').style.display = 'none';
+  document.getElementById('cam-badge').style.display = 'flex';
+  document.getElementById('cam-fps').style.display = 'block';
+  document.getElementById('camera-overlay').classList.add('active');
+
+  function snap() {
+    if (!connected || !bridgeBase) return;
+    feed.src = `${bridgeBase}/debug_image.jpg?t=${Date.now()}`;
+  }
+  snap();
+  if (imgTimer) clearInterval(imgTimer);
+  imgTimer = setInterval(snap, 100); // ~10fps snap polling
+}
+
+function toggleStream() {
+  useStream = !useStream;
+  document.getElementById('stream-toggle-btn').textContent = useStream ? 'SNAP' : 'MJPEG';
+  if (!connected) return;
+  if (imgTimer) { clearInterval(imgTimer); imgTimer = null; }
+  startImageRefresh();
+  log(`Camera mode: ${useStream ? 'MJPEG stream' : 'snapshot polling'}`, 'sys');
+}
+
+function refreshFrame() {
+  if (!connected || !bridgeBase) return;
+  const feed = document.getElementById('camera-feed');
+  feed.src = `${bridgeBase}/debug_image.jpg?t=${Date.now()}`;
+}
+
+// ── COMMANDS ───────────────────────────────────────────
+async function sendCommand(cmd) {
+  if (!bridgeBase) { log('Not connected', 'error'); return; }
+  log(`Sending /${cmd} to bot...`, 'sys');
+  try {
+    const r = await fetchWithTimeout(`${bridgeBase}/${cmd}`, 3000, { method: 'POST' });
+    const data = await r.json();
+    log(`/${cmd} → ${JSON.stringify(data)}`, data.ok ? 'ok' : 'error');
+  } catch(e) {
+    log(`Command failed: ${e}`, 'error');
+  }
+}
+
+// ── DTS LAUNCHER (spawned via local backend — not available in pure browser) ──
+// These require the Python launcher script to be running locally.
+// They call the launcher proxy on localhost:8766 if available.
+const LAUNCHER_BASE = 'http://localhost:8766';
+
+async function launchDts() {
+  log('Requesting dts devel run...', 'sys');
+  try {
+    const r = await fetchWithTimeout(`${LAUNCHER_BASE}/dts/run`, 4000, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ hostname: botHost })
+    });
+    const d = await r.json();
+    log(d.message || 'DTS run dispatched', d.ok ? 'ok' : 'warn');
+  } catch(e) {
+    log('Launcher proxy not running (localhost:8766). Start duckie_launcher.py first.', 'warn');
+  }
+}
+
+async function buildDts() {
+  log('Requesting dts devel build...', 'sys');
+  try {
+    const r = await fetchWithTimeout(`${LAUNCHER_BASE}/dts/build`, 4000, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ hostname: botHost })
+    });
+    const d = await r.json();
+    log(d.message || 'DTS build dispatched', d.ok ? 'ok' : 'warn');
+  } catch(e) {
+    log('Launcher proxy not running. Start duckie_launcher.py first.', 'warn');
+  }
+}
+
+async function stopDts() {
+  log('Requesting container stop...', 'sys');
+  try {
+    const r = await fetchWithTimeout(`${LAUNCHER_BASE}/dts/stop`, 4000, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ hostname: botHost })
+    });
+    const d = await r.json();
+    log(d.message || 'Stop dispatched', d.ok ? 'ok' : 'warn');
+  } catch(e) {
+    log('Launcher proxy not running. Start duckie_launcher.py first.', 'warn');
+  }
+}
+
+// ── LAUNCHER PROXY LOG POLLER ──────────────────────────
+// polls the local launcher proxy for dts stdout lines
+let launcherLogOffset = 0;
+setInterval(async () => {
+  try {
+    const r = await fetchWithTimeout(`${LAUNCHER_BASE}/logs?offset=${launcherLogOffset}`, 1000);
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.lines && d.lines.length > 0) {
+      d.lines.forEach(l => log(l, 'info'));
+      launcherLogOffset = d.offset;
+    }
+  } catch(_) {}
+}, 1000);
+
+// ── UTILS ──────────────────────────────────────────────
+function fetchWithTimeout(url, timeout=5000, opts={}) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  return fetch(url, { ...opts, signal: controller.signal })
+    .finally(() => clearTimeout(id));
+}
+
+// ── INIT ───────────────────────────────────────────────
+log('Duckie Control Station ready.', 'sys');
+log('Enter bot hostname and click CONNECT.', 'info');
+</script>
+</body>
+</html>
