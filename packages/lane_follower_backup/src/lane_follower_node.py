@@ -12,41 +12,34 @@ from duckietown_msgs.msg import WheelsCmdStamped
 class LaneFollowerNode(DTROS):
 
     def __init__(self, node_name):
-        # Initialize the DTROS parent class
         super(LaneFollowerNode, self).__init__(node_name=node_name, node_type=NodeType.CONTROL)
-        
-        # Get vehicle name
+
         self.veh = os.environ.get("VEHICLE_NAME", "duckiebot")
-        
-        # Parameters
+
         self.v_base = DTParam("~v_base", param_type=ParamType.FLOAT, default=0.15)
         self.k_p = DTParam("~k_p", param_type=ParamType.FLOAT, default=1.2)
         self.k_repel = DTParam("~k_repel", param_type=ParamType.FLOAT, default=0.5)
-        
-        # HSV Thresholds
+
         self.yellow_low = np.array([20, 100, 100])
         self.yellow_high = np.array([35, 255, 255])
         self.white_low = np.array([0, 0, 180])
         self.white_high = np.array([180, 50, 255])
-        
-        # ROI Params
+
         self.roi_top = 0.6
         self.roi_bot = 0.9
 
-        # Load kinematics
         self.kin = self.load_kinematics()
 
-        # Publishers & Subscribers
         self.pub_wheels = rospy.Publisher(
-            f"/{self.veh}/wheels_driver_node/wheels_cmd", 
-            WheelsCmdStamped, 
+            f"/{self.veh}/wheels_driver_node/wheels_cmd",
+            WheelsCmdStamped,
             queue_size=1
         )
         self.sub_image = rospy.Subscriber(
-            f"/{self.veh}/camera_node/image/compressed", 
-            CompressedImage, 
-            self.cb_image, 
-            queue_size=1, 
+            f"/{self.veh}/camera_node/image/compressed",
+            CompressedImage,
+            self.cb_image,
+            queue_size=1,
             buff_size=2**24
         )
 
@@ -62,91 +55,73 @@ class LaneFollowerNode(DTROS):
         return defaults
 
     def steer(self, v, omega):
-        """Convert v, omega to wheel commands using Duckietown kinematics."""
         k = self.kin['k']
         r = self.kin['radius']
         b = self.kin['baseline']
         g = self.kin['gain']
         t = self.kin['trim']
-        
-        v_l = (v - 0.5 * omega * b) / (r * k)
-        v_r = (v + 0.5 * omega * b) / (r * k)
-        
-        v_l *= (g - t)
-        v_r *= (g + t)
-        
+
+        v_l = (v - 0.5 * omega * b) / (r * k) * (g - t)
+        v_r = (v + 0.5 * omega * b) / (r * k) * (g + t)
+
         msg = WheelsCmdStamped()
         msg.header.stamp = rospy.Time.now()
         msg.vel_left = np.clip(v_l, -self.kin['limit'], self.kin['limit'])
         msg.vel_right = np.clip(v_r, -self.kin['limit'], self.kin['limit'])
         self.pub_wheels.publish(msg)
 
-    def get_line_stats(self, mask):
+    def get_centroid(self, mask):
         pts = cv2.findNonZero(mask)
         if pts is None:
-            return None, None
-        
-        avg = np.mean(pts, axis=0)[0]
-        centroid_x = avg[0] / mask.shape[1]
-        
-        if len(pts) > 10:
-            [vx, vy, x, y] = cv2.fitLine(pts, cv2.DIST_L2, 0, 0.01, 0.01)
-            slope = vx / vy if vy != 0 else 999
-            return centroid_x, float(slope)
-        
-        return centroid_x, 0.0
+            return None
+        return float(np.mean(pts, axis=0)[0][0]) / mask.shape[1]
 
     def cb_image(self, msg):
         if not self.is_active:
             return
 
-        # Decode and Resize
         np_arr = np.frombuffer(msg.data, np.uint8)
         img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-        h, w = img.shape[:2]
         img = cv2.resize(img, (160, 120))
-        h, w = 120, 160
-        
-        # Define ROI
+        h = 120
+
         y1, y2 = int(h * self.roi_top), int(h * self.roi_bot)
         roi = img[y1:y2, :]
         hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        
-        # Masks
+
         mask_y = cv2.inRange(hsv, self.yellow_low, self.yellow_high)
         mask_w = cv2.inRange(hsv, self.white_low, self.white_high)
-        
-        # Get stats
-        y_center, y_slope = self.get_line_stats(mask_y)
-        w_center, w_slope = self.get_line_stats(mask_w)
-        
-        omega = 0
-        case = "LOST"
-        
+
+        y_center = self.get_centroid(mask_y)
+        w_center = self.get_centroid(mask_w)
+
         if y_center is not None:
+            # Steer to keep yellow centerline at image center
             error = 0.5 - y_center
-            omega = error * self.k_p.value * 5.0 
-            case = "FOLLOW_YELLOW"
-            
+            omega = error * self.k_p.value * 5.0
+
+            # Repel from white edge if detected
             if w_center is not None:
                 if w_center < 0.3:
                     omega -= self.k_repel.value
                 elif w_center > 0.7:
                     omega += self.k_repel.value
 
-        elif w_center is not None:
-            if w_slope > 0:
-                omega = -1.5
-            else:
-                omega = 1.5
-            case = "WHITE_RECOVERY"
-        else:
-            omega = 0
-            case = "STOPPED"
+            v = max(0.0, self.v_base.value * (1.0 - abs(omega) * 0.2))
+            rospy.logdebug("FOLLOW_YELLOW omega=%.2f v=%.2f", omega, v)
 
-        v = self.v_base.value * (1.0 - abs(omega) * 0.2)
-        if case == "STOPPED": v = 0
-        
+        elif w_center is not None:
+            # White is the right edge: if it's left of center we've drifted left, steer right
+            error = w_center - 0.5
+            omega = error * self.k_p.value * 3.0
+            v = max(0.0, self.v_base.value * 0.5)
+            rospy.logdebug("WHITE_RECOVERY omega=%.2f", omega)
+
+        else:
+            omega = 0.0
+            v = 0.0
+            rospy.logdebug("LOST: no lane markings visible")
+
         self.steer(v, omega)
 
     def on_shutdown(self):
