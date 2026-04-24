@@ -4,395 +4,689 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DUCKIE CONTROL STATION</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&family=Barlow+Condensed:wght@300;400;600;700;800&display=swap');
-
   :root {
-    --bg:         #0d1117;
-    --bg2:        #0a0e14;
-    --surface:    #131920;
-    --surface2:   #1a2332;
-    --border:     #1e2d3d;
-    --border2:    #243447;
-    --teal:       #00d4c8;
-    --teal-dim:   #00897b;
-    --cyan:       #38bdf8;
-    --green:      #22c55e;
-    --amber:      #f59e0b;
-    --amber-dim:  #92400e;
-    --red:        #ef4444;
-    --red-dim:    #7f1d1d;
-    --muted:      #4a6178;
-    --text:       #cdd9e5;
-    --text-dim:   #768fa3;
-    --mono:       'Share Tech Mono', monospace;
-    --ui:         'Barlow Condensed', sans-serif;
-    --body:       'Barlow', sans-serif;
-    --glow-teal:  0 0 12px rgba(0,212,200,0.4);
-    --glow-amber: 0 0 12px rgba(245,158,11,0.4);
-    --glow-red:   0 0 12px rgba(239,68,68,0.4);
+    --bg:          #07090f;
+    --bg2:         #04060b;
+    --surface:     #0c1018;
+    --surface2:    #111722;
+    --surface3:    #161e2e;
+    --border:      #1c2840;
+    --border2:     #233050;
+    --border3:     #2d3f60;
+
+    --gold:        #f0a500;
+    --gold-dim:    #a06800;
+    --gold-pale:   #ffc84a;
+    --cyan:        #00c9e0;
+    --cyan-dim:    #007f8e;
+    --green:       #1de98b;
+    --green-dim:   #0a6040;
+    --red:         #ff4455;
+    --red-dim:     #7a1020;
+    --amber:       #ffb020;
+
+    --text:        #d4dff0;
+    --text-dim:    #6a82a8;
+    --text-faint:  #3a4d6a;
+    --muted:       #2e4060;
+
+    --mono:        'DM Mono', monospace;
+    --ui:          'Syne', sans-serif;
+
+    --glow-gold:   0 0 20px rgba(240,165,0,0.35);
+    --glow-cyan:   0 0 16px rgba(0,201,224,0.35);
+    --glow-green:  0 0 14px rgba(29,233,139,0.4);
+    --glow-red:    0 0 14px rgba(255,68,85,0.4);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  html, body { height: 100%; overflow: hidden; }
+
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: var(--body);
-    font-size: 14px;
-    min-height: 100vh;
-    overflow-x: hidden;
+    font-family: var(--mono);
+    font-size: 13px;
+    height: 100vh;
+    position: relative;
   }
 
-  /* scanline overlay */
+  /* ── BACKGROUND TEXTURES ── */
   body::before {
     content: '';
-    position: fixed; inset: 0; z-index: 999; pointer-events: none;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.04) 2px,
-      rgba(0,0,0,0.04) 4px
-    );
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 15% 20%, rgba(240,165,0,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 85% 80%, rgba(0,201,224,0.03) 0%, transparent 60%);
   }
 
-  /* top noise grain */
+  /* hex grid */
   body::after {
     content: '';
-    position: fixed; inset: 0; z-index: 998; pointer-events: none; opacity: 0.03;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-size: 200px 200px;
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.18;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V18L28 2l28 16v32L28 66zm0-6l22-13V24L28 11 6 24v23l22 13z' fill='none' stroke='%231c2840' stroke-width='1'/%3E%3C/svg%3E");
+    background-size: 56px 100px;
+  }
+
+  /* ── LAYOUT ── */
+  .app {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-rows: 52px 1fr;
+    height: 100vh;
+    overflow: hidden;
   }
 
   /* ── HEADER ── */
   header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 20px;
-    border-bottom: 1px solid var(--border);
-    background: linear-gradient(90deg, rgba(0,212,200,0.04) 0%, transparent 60%);
+    padding: 0 20px 0 0;
+    border-bottom: 1px solid var(--border2);
+    background: linear-gradient(90deg, rgba(240,165,0,0.06) 0%, transparent 50%);
     position: relative; overflow: hidden;
+    flex-shrink: 0;
   }
-  header::before {
-    content: '';
-    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-    background: linear-gradient(180deg, var(--teal), var(--cyan));
-    box-shadow: var(--glow-teal);
+
+  .header-accent {
+    width: 4px; height: 100%;
+    background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+    box-shadow: var(--glow-gold);
+    flex-shrink: 0;
+    margin-right: 16px;
   }
+
   .header-left { display: flex; align-items: center; gap: 14px; }
+
   .duck-icon {
-    width: 36px; height: 36px; border-radius: 8px;
-    background: linear-gradient(135deg, var(--teal), var(--cyan));
+    width: 32px; height: 32px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 18px; box-shadow: var(--glow-teal);
-    animation: iconPulse 3s ease-in-out infinite;
+    font-size: 20px;
+    filter: drop-shadow(0 0 8px rgba(240,165,0,0.5));
+    animation: duckBob 4s ease-in-out infinite;
   }
-  @keyframes iconPulse {
-    0%,100% { box-shadow: 0 0 8px rgba(0,212,200,0.3); }
-    50% { box-shadow: 0 0 20px rgba(0,212,200,0.7); }
+  @keyframes duckBob {
+    0%,100% { transform: translateY(0); filter: drop-shadow(0 0 8px rgba(240,165,0,0.5)); }
+    50% { transform: translateY(-2px); filter: drop-shadow(0 0 14px rgba(240,165,0,0.8)); }
   }
-  .header-title { font-family: var(--ui); font-weight: 800; font-size: 20px; letter-spacing: 3px; text-transform: uppercase; color: var(--teal); }
-  .header-sub { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+
+  .header-wordmark {
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .header-title {
+    font-family: var(--ui); font-weight: 800; font-size: 16px;
+    letter-spacing: 4px; text-transform: uppercase;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .header-sub {
+    font-family: var(--mono); font-size: 9px; color: var(--text-dim);
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+
+  .header-center {
+    display: flex; align-items: center; gap: 24px;
+    position: absolute; left: 50%; transform: translateX(-50%);
+  }
+  .header-stat {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+  }
+  .header-stat-label { font-size: 8px; letter-spacing: 2px; color: var(--text-faint); text-transform: uppercase; }
+  .header-stat-val { font-size: 13px; color: var(--text-dim); font-weight: 500; }
+
   .header-right { display: flex; align-items: center; gap: 16px; }
-  .clock { font-family: var(--mono); font-size: 13px; color: var(--text-dim); }
-  .conn-badge {
-    display: flex; align-items: center; gap: 6px;
-    padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border2);
-    font-family: var(--mono); font-size: 11px;
+
+  .clock {
+    font-family: var(--mono); font-size: 14px; color: var(--text-dim);
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
   }
-  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-  .conn-badge.connected .conn-dot { background: var(--green); box-shadow: 0 0 6px var(--green); animation: blink 2s ease-in-out infinite; }
-  .conn-badge.error .conn-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .conn-badge {
+    display: flex; align-items: center; gap: 7px;
+    padding: 5px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-dim);
+    transition: all 0.3s;
+  }
+  .conn-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.3s;
+  }
+  .conn-badge.connected {
+    border-color: var(--green-dim);
+    background: rgba(29,233,139,0.06);
+    color: var(--green);
+  }
+  .conn-badge.connected .conn-dot {
+    background: var(--green);
+    box-shadow: var(--glow-green);
+    animation: blink 2s ease-in-out infinite;
+  }
+  .conn-badge.error {
+    border-color: var(--red-dim);
+    background: rgba(255,68,85,0.06);
+    color: var(--red);
+  }
+  .conn-badge.error .conn-dot { background: var(--red); box-shadow: var(--glow-red); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
   /* ── MAIN GRID ── */
   .main-grid {
     display: grid;
-    grid-template-columns: 280px 1fr 300px;
-    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 262px 1fr 288px;
+    grid-template-rows: 1fr auto 148px;
     gap: 1px;
     background: var(--border);
-    height: calc(100vh - 57px);
+    overflow: hidden;
+    min-height: 0;
   }
+
   .panel {
     background: var(--surface);
     overflow: hidden;
     display: flex; flex-direction: column;
+    position: relative;
+    min-height: 0;
   }
+
+  /* panel corner accents */
+  .panel::before, .panel::after {
+    content: '';
+    position: absolute; z-index: 2; pointer-events: none;
+    width: 10px; height: 10px;
+  }
+  .panel::before { top: 0; left: 0; border-top: 1px solid var(--border3); border-left: 1px solid var(--border3); }
+  .panel::after  { bottom: 0; right: 0; border-bottom: 1px solid var(--border3); border-right: 1px solid var(--border3); }
+
   .panel-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 14px;
+    padding: 7px 14px;
     background: var(--surface2);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    position: relative;
   }
+  .panel-header::after {
+    content: '';
+    position: absolute; bottom: 0; left: 14px; right: 14px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border3), transparent);
+  }
+
   .panel-label {
-    font-family: var(--ui); font-weight: 700; font-size: 11px;
-    letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim);
-    display: flex; align-items: center; gap: 6px;
+    font-family: var(--ui); font-weight: 600; font-size: 10px;
+    letter-spacing: 3px; text-transform: uppercase; color: var(--text-dim);
+    display: flex; align-items: center; gap: 7px;
   }
-  .panel-label .dot { width: 6px; height: 6px; border-radius: 50%; }
-  .panel-body { padding: 14px; overflow-y: auto; flex: 1; }
-  .panel-body::-webkit-scrollbar { width: 4px; }
+  .panel-label .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+  .panel-body { padding: 14px; overflow-y: auto; flex: 1; min-height: 0; }
+  .panel-body::-webkit-scrollbar { width: 3px; }
   .panel-body::-webkit-scrollbar-track { background: transparent; }
   .panel-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-  /* ── LEFT PANEL: CONNECTION ── */
+  /* ── LEFT PANEL ── */
   .left-col { grid-column: 1; grid-row: 1 / 4; }
 
-  .hostname-input-wrap { position: relative; margin-bottom: 16px; }
-  .hostname-input-wrap label { display: block; font-family: var(--mono); font-size: 10px; color: var(--muted); margin-bottom: 5px; letter-spacing: 1px; }
+  .hostname-input-wrap { margin-bottom: 14px; }
+  .hostname-input-wrap label {
+    display: block; font-size: 9px; color: var(--text-faint);
+    margin-bottom: 5px; letter-spacing: 2px; text-transform: uppercase;
+  }
   .hostname-input {
     width: 100%; padding: 8px 12px;
     background: var(--bg2); border: 1px solid var(--border2);
-    border-radius: 4px; color: var(--teal); font-family: var(--mono); font-size: 13px;
-    outline: none; transition: border-color 0.2s;
+    color: var(--gold); font-family: var(--mono); font-size: 13px;
+    outline: none; transition: all 0.2s;
+    clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
   }
-  .hostname-input:focus { border-color: var(--teal); box-shadow: 0 0 0 2px rgba(0,212,200,0.15); }
+  .hostname-input:focus {
+    border-color: var(--gold-dim);
+    box-shadow: 0 0 0 1px rgba(240,165,0,0.2), inset 0 0 12px rgba(240,165,0,0.04);
+  }
 
   .connect-btn {
-    width: 100%; padding: 10px;
-    background: linear-gradient(135deg, var(--teal-dim), var(--teal));
-    border: none; border-radius: 4px; cursor: pointer;
-    font-family: var(--ui); font-weight: 700; font-size: 13px;
-    letter-spacing: 2px; text-transform: uppercase; color: #000;
-    transition: all 0.2s; margin-bottom: 18px;
+    width: 100%; padding: 10px 14px;
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    border: none; cursor: pointer;
+    font-family: var(--ui); font-weight: 700; font-size: 11px;
+    letter-spacing: 3px; text-transform: uppercase; color: #07090f;
+    transition: all 0.2s; margin-bottom: 16px;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+    position: relative; overflow: hidden;
   }
-  .connect-btn:hover { filter: brightness(1.15); box-shadow: var(--glow-teal); }
+  .connect-btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.4s ease;
+  }
+  .connect-btn:hover::before { transform: translateX(100%); }
+  .connect-btn:hover { box-shadow: var(--glow-gold); filter: brightness(1.1); }
   .connect-btn:active { transform: scale(0.98); }
-  .connect-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .connect-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-  /* step tracker */
-  .steps { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+  /* steps */
+  .steps { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
   .step {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 10px; border-radius: 4px;
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 10px;
     border: 1px solid transparent;
-    font-family: var(--mono); font-size: 11px;
-    transition: all 0.3s;
+    font-size: 10px; letter-spacing: 0.5px;
+    transition: all 0.25s;
+    position: relative;
   }
-  .step.pending { color: var(--muted); border-color: var(--border); }
-  .step.running { color: var(--amber); border-color: var(--amber-dim); background: rgba(245,158,11,0.05); }
-  .step.done    { color: var(--green); border-color: rgba(34,197,94,0.2); background: rgba(34,197,94,0.04); }
-  .step.error   { color: var(--red); border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.05); }
-  .step-icon { font-size: 12px; width: 16px; text-align: center; flex-shrink: 0; }
-  .step.running .step-icon { animation: spin 1s linear infinite; display: inline-block; }
+  .step::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+    background: transparent; transition: background 0.25s;
+  }
+  .step.pending { color: var(--text-faint); border-color: var(--border); }
+  .step.running {
+    color: var(--amber); border-color: rgba(255,176,32,0.2);
+    background: rgba(255,176,32,0.04);
+  }
+  .step.running::before { background: var(--amber); }
+  .step.done {
+    color: var(--green); border-color: rgba(29,233,139,0.15);
+    background: rgba(29,233,139,0.03);
+  }
+  .step.done::before { background: var(--green); }
+  .step.error {
+    color: var(--red); border-color: rgba(255,68,85,0.15);
+    background: rgba(255,68,85,0.04);
+  }
+  .step.error::before { background: var(--red); }
+  .step-icon { font-size: 11px; width: 14px; text-align: center; flex-shrink: 0; font-style: normal; }
+  .step.running .step-icon { animation: spin 0.8s linear infinite; display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* resolved IP display */
+  /* IP display */
   .ip-display {
-    padding: 8px 10px; border-radius: 4px;
+    padding: 7px 10px; margin-bottom: 14px;
     background: var(--bg2); border: 1px solid var(--border2);
-    font-family: var(--mono); font-size: 12px; color: var(--text-dim);
-    margin-bottom: 14px; min-height: 34px;
+    font-size: 11px; color: var(--text-dim); min-height: 32px;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.3s;
+  }
+  .ip-display.resolved { border-color: var(--gold-dim); color: var(--gold); }
+  .ip-key { color: var(--text-faint); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; }
+
+  /* dts buttons */
+  .section-label {
+    font-family: var(--ui); font-weight: 600; font-size: 9px;
+    letter-spacing: 3px; text-transform: uppercase; color: var(--text-faint);
+    margin-bottom: 8px;
     display: flex; align-items: center; gap: 6px;
   }
-  .ip-display.resolved { border-color: var(--teal-dim); color: var(--teal); }
-  .ip-key { color: var(--muted); font-size: 10px; letter-spacing: 1px; }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, var(--border2), transparent);
+  }
 
-  /* dts launch section */
-  .dts-controls { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .dts-controls { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
   .dts-btn {
-    padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border2);
+    padding: 8px 12px;
+    border: 1px solid var(--border2);
     background: var(--bg2); cursor: pointer;
-    font-family: var(--ui); font-weight: 600; font-size: 12px;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+    font-family: var(--ui); font-weight: 600; font-size: 10px;
+    letter-spacing: 2px; text-transform: uppercase;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
     color: var(--text-dim);
   }
-  .dts-btn:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); background: rgba(56,189,248,0.06); }
-  .dts-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-  .dts-btn.danger:hover:not(:disabled) { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.06); }
-
-  /* ── CENTER: CAMERA + METRICS ── */
-  .center-col { grid-column: 2; grid-row: 1; }
-  .metrics-row { grid-column: 2; grid-row: 2; }
-  .log-row { grid-column: 2; grid-row: 3; }
-
-  /* camera feed */
-  .camera-panel {
-    grid-column: 2; grid-row: 1;
-    display: flex; flex-direction: column;
+  .dts-btn:hover:not(:disabled) {
+    border-color: var(--cyan-dim); color: var(--cyan);
+    background: rgba(0,201,224,0.05);
+    box-shadow: inset 0 0 12px rgba(0,201,224,0.04);
   }
+  .dts-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+  .dts-btn.danger:hover:not(:disabled) {
+    border-color: var(--red-dim); color: var(--red);
+    background: rgba(255,68,85,0.05);
+  }
+
+  /* vehicle info */
+  .veh-info { display: flex; flex-direction: column; gap: 5px; }
+  .veh-row {
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 11px; line-height: 1;
+  }
+  .veh-key { font-size: 9px; color: var(--text-faint); letter-spacing: 2px; text-transform: uppercase; min-width: 46px; }
+  .veh-val { color: var(--text-dim); }
+
+  .divider {
+    height: 1px; margin: 12px 0;
+    background: linear-gradient(90deg, transparent, var(--border2), transparent);
+  }
+
+  /* ── CAMERA PANEL ── */
+  .camera-panel { grid-column: 2; grid-row: 1; }
+
   .camera-wrap {
     flex: 1; display: flex; align-items: center; justify-content: center;
-    background: var(--bg2); position: relative; overflow: hidden; min-height: 200px;
-    padding: 0;
+    background: var(--bg2); position: relative; overflow: hidden;
+    min-height: 0;
   }
+
+  /* corner bracket overlays on camera */
+  .cam-corner {
+    position: absolute; width: 20px; height: 20px; pointer-events: none; z-index: 3;
+  }
+  .cam-corner-tl { top: 8px; left: 8px; border-top: 2px solid var(--gold); border-left: 2px solid var(--gold); }
+  .cam-corner-tr { top: 8px; right: 8px; border-top: 2px solid var(--gold); border-right: 2px solid var(--gold); }
+  .cam-corner-bl { bottom: 8px; left: 8px; border-bottom: 2px solid var(--gold); border-left: 2px solid var(--gold); }
+  .cam-corner-br { bottom: 8px; right: 8px; border-bottom: 2px solid var(--gold); border-right: 2px solid var(--gold); }
+
+  /* scanning line animation on active feed */
+  .camera-scan {
+    position: absolute; left: 0; right: 0; height: 2px; z-index: 4; pointer-events: none;
+    background: linear-gradient(90deg, transparent 0%, rgba(0,201,224,0.4) 50%, transparent 100%);
+    opacity: 0; transition: opacity 0.3s;
+    animation: camScan 3s linear infinite;
+  }
+  .camera-scan.active { opacity: 1; }
+  @keyframes camScan {
+    0%   { top: 0%; }
+    100% { top: 100%; }
+  }
+
   .camera-feed {
     max-width: 100%; max-height: 100%; object-fit: contain;
-    display: block;
-    image-rendering: pixelated;
+    display: block; image-rendering: pixelated;
   }
+
   .camera-overlay {
     position: absolute; inset: 0; pointer-events: none;
-    border: 2px solid transparent;
-    transition: border-color 0.3s;
+    border: 1px solid transparent; transition: border-color 0.3s;
   }
-  .camera-overlay.active { border-color: rgba(0,212,200,0.25); }
+  .camera-overlay.active { border-color: rgba(240,165,0,0.15); }
+
   .cam-badge {
-    position: absolute; top: 10px; left: 10px;
-    background: rgba(0,0,0,0.7); border: 1px solid var(--border2);
-    padding: 3px 8px; border-radius: 3px;
-    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    position: absolute; top: 12px; left: 12px; z-index: 5;
+    background: rgba(4,6,11,0.85);
+    border: 1px solid rgba(29,233,139,0.3);
+    padding: 3px 8px;
+    font-size: 9px; color: var(--green); letter-spacing: 2px;
     display: flex; align-items: center; gap: 5px;
+    backdrop-filter: blur(4px);
   }
-  .cam-badge.live { color: var(--green); border-color: rgba(34,197,94,0.3); }
-  .cam-badge .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 1s ease-in-out infinite; }
-  .cam-fps { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); border: 1px solid var(--border2); padding: 3px 8px; border-radius: 3px; font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
-  .cam-state { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.75); border: 1px solid var(--border2); padding: 3px 8px; border-radius: 3px; font-family: var(--mono); font-size: 10px; }
-  .cam-state.FOLLOW_YELLOW { color: var(--amber); border-color: rgba(245,158,11,0.3); }
-  .cam-state.WHITE_RECOVERY { color: var(--cyan); border-color: rgba(56,189,248,0.3); }
-  .cam-state.LOST { color: var(--red); border-color: rgba(239,68,68,0.3); }
+  .live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); box-shadow: var(--glow-green); animation: blink 1s ease-in-out infinite; }
+
+  .cam-fps {
+    position: absolute; top: 12px; right: 12px; z-index: 5;
+    background: rgba(4,6,11,0.85);
+    border: 1px solid var(--border2);
+    padding: 3px 8px; font-size: 9px; color: var(--text-dim);
+    backdrop-filter: blur(4px);
+  }
+
+  .cam-state {
+    position: absolute; bottom: 12px; left: 12px; z-index: 5;
+    background: rgba(4,6,11,0.85);
+    border: 1px solid var(--border2);
+    padding: 3px 8px; font-size: 9px;
+    backdrop-filter: blur(4px);
+  }
+  .cam-state.FOLLOW_YELLOW { color: var(--amber); border-color: rgba(255,176,32,0.3); }
+  .cam-state.WHITE_RECOVERY { color: var(--cyan); border-color: rgba(0,201,224,0.3); }
+  .cam-state.LOST { color: var(--red); border-color: rgba(255,68,85,0.3); }
+
   .no-feed {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-    color: var(--muted); font-family: var(--mono); font-size: 12px; width: 100%; height: 100%;
-    min-height: 200px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    width: 100%; height: 100%; min-height: 180px;
+    color: var(--text-faint);
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
   }
-  .no-feed-icon { font-size: 40px; opacity: 0.3; }
+  .no-feed-icon { font-size: 32px; opacity: 0.2; }
+  .no-feed-crosshair {
+    position: absolute; width: 40px; height: 40px; opacity: 0.12;
+    border: 1px solid var(--text-dim);
+    border-radius: 50%;
+  }
+  .no-feed-crosshair::before, .no-feed-crosshair::after {
+    content: ''; position: absolute;
+    background: var(--text-dim);
+  }
+  .no-feed-crosshair::before { width: 1px; height: 100%; left: 50%; }
+  .no-feed-crosshair::after  { height: 1px; width: 100%; top: 50%; }
 
   /* legend */
-  .legend { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--border); background: var(--surface2); flex-shrink: 0; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
-  .legend-swatch { width: 20px; height: 3px; border-radius: 2px; }
+  .legend {
+    display: flex; gap: 18px; flex-wrap: wrap;
+    padding: 7px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2); flex-shrink: 0;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 9px; color: var(--text-dim); letter-spacing: 0.5px; }
+  .legend-swatch { width: 16px; height: 2px; border-radius: 1px; }
 
-  /* metrics row */
+  /* panel-btn (camera controls) */
+  .panel-btn {
+    padding: 2px 9px; background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim); font-family: var(--mono); font-size: 9px;
+    letter-spacing: 1px; cursor: pointer; transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .panel-btn:hover { border-color: var(--border3); color: var(--text); }
+
+  /* ── METRICS ROW ── */
   .metrics-row {
     grid-column: 2; grid-row: 2;
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
-    background: var(--border); flex-shrink: 0;
-    max-height: 90px;
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 1px; background: var(--border);
+    flex-shrink: 0; max-height: 82px;
   }
+
   .metric-card {
     background: var(--surface); padding: 10px 14px;
-    display: flex; flex-direction: column; gap: 3px;
+    display: flex; flex-direction: column; gap: 2px;
+    position: relative; overflow: hidden;
   }
-  .metric-label { font-family: var(--ui); font-size: 9px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
-  .metric-value { font-family: var(--mono); font-size: 22px; color: var(--text); line-height: 1; }
-  .metric-unit { font-family: var(--mono); font-size: 9px; color: var(--muted); }
-  .metric-bar-wrap { height: 2px; background: var(--border2); border-radius: 1px; margin-top: 4px; }
-  .metric-bar { height: 100%; border-radius: 1px; transition: width 0.3s; background: var(--teal); }
+  .metric-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border3), transparent);
+  }
+  .metric-label {
+    font-family: var(--ui); font-size: 8px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint);
+  }
+  .metric-value {
+    font-size: 20px; color: var(--text); line-height: 1;
+    font-variant-numeric: tabular-nums; font-weight: 300;
+    transition: color 0.3s;
+  }
+  .metric-unit { font-size: 8px; color: var(--text-faint); letter-spacing: 1px; }
+  .metric-bar-wrap { height: 2px; background: var(--border2); margin-top: 4px; overflow: hidden; }
+  .metric-bar { height: 100%; transition: width 0.3s ease-out; }
 
-  /* ── RIGHT PANEL: CONTROLS + KINEMATICS ── */
+  /* ── RIGHT PANEL ── */
   .right-col { grid-column: 3; grid-row: 1 / 4; }
 
-  /* big control buttons */
-  .control-section { margin-bottom: 20px; }
-  .section-label { font-family: var(--ui); font-weight: 700; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  /* status indicator */
+  .status-indicator {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 12px;
+    border: 1px solid var(--border2); background: var(--bg2);
+    font-size: 10px; color: var(--text-faint); letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 14px;
+    transition: all 0.3s; position: relative; overflow: hidden;
+  }
+  .status-indicator::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--muted); transition: background 0.3s;
+  }
+  .status-indicator.active {
+    border-color: rgba(29,233,139,0.2); color: var(--green);
+    background: rgba(29,233,139,0.04);
+  }
+  .status-indicator.active::before { background: var(--green); box-shadow: var(--glow-green); }
+  .status-indicator.stopped {
+    border-color: rgba(255,68,85,0.2); color: var(--red);
+    background: rgba(255,68,85,0.04);
+  }
+  .status-indicator.stopped::before { background: var(--red); }
+  .status-led {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted); flex-shrink: 0; transition: all 0.3s;
+  }
+  .status-indicator.active .status-led { background: var(--green); box-shadow: var(--glow-green); animation: blink 2s ease-in-out infinite; }
+  .status-indicator.stopped .status-led { background: var(--red); box-shadow: var(--glow-red); }
 
+  /* lane control buttons */
   .lane-btn {
     width: 100%; padding: 14px;
-    border: 2px solid; border-radius: 6px; cursor: pointer;
-    font-family: var(--ui); font-weight: 800; font-size: 16px;
-    letter-spacing: 3px; text-transform: uppercase;
+    border: 1px solid; cursor: pointer;
+    font-family: var(--ui); font-weight: 700; font-size: 14px;
+    letter-spacing: 4px; text-transform: uppercase;
     transition: all 0.2s; margin-bottom: 8px;
     display: flex; align-items: center; justify-content: center; gap: 8px;
     position: relative; overflow: hidden;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
   }
   .lane-btn::before {
     content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.2s;
     background: currentColor;
   }
-  .lane-btn:hover::before { opacity: 0.07; }
+  .lane-btn:hover::before { opacity: 0.08; }
   .lane-btn:active { transform: scale(0.98); }
-  .lane-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .lane-btn:disabled { opacity: 0.25; cursor: not-allowed; }
 
-  .btn-start { background: rgba(34,197,94,0.08); border-color: var(--green); color: var(--green); }
-  .btn-start:hover:not(:disabled) { box-shadow: 0 0 20px rgba(34,197,94,0.3); }
-  .btn-stop  { background: rgba(239,68,68,0.08); border-color: var(--red); color: var(--red); }
-  .btn-stop:hover:not(:disabled)  { box-shadow: 0 0 20px rgba(239,68,68,0.3); }
-
-  .status-indicator {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 12px; border-radius: 4px;
-    border: 1px solid var(--border2); background: var(--bg2);
-    font-family: var(--mono); font-size: 11px; color: var(--muted);
-    margin-bottom: 16px;
+  .btn-start {
+    background: rgba(29,233,139,0.06); border-color: var(--green-dim); color: var(--green);
   }
-  .status-indicator.active { border-color: rgba(34,197,94,0.3); color: var(--green); background: rgba(34,197,94,0.06); }
-  .status-indicator.stopped { border-color: rgba(239,68,68,0.25); color: var(--red); background: rgba(239,68,68,0.05); }
-  .status-led { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
-  .status-indicator.active .status-led { background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 2s ease-in-out infinite; }
-  .status-indicator.stopped .status-led { background: var(--red); }
+  .btn-start:hover:not(:disabled) { box-shadow: var(--glow-green); border-color: var(--green); }
+  .btn-stop {
+    background: rgba(255,68,85,0.06); border-color: var(--red-dim); color: var(--red);
+  }
+  .btn-stop:hover:not(:disabled) { box-shadow: var(--glow-red); border-color: var(--red); }
 
-  /* centroid bars */
-  .centroid-section { margin-bottom: 18px; }
+  /* centroid tracks */
+  .centroid-section { margin-bottom: 16px; }
+  .centroid-sublabel { font-size: 8px; color: var(--text-faint); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+
   .centroid-track {
-    height: 24px; background: var(--bg2); border-radius: 4px;
-    border: 1px solid var(--border2); position: relative; overflow: hidden;
-    margin-bottom: 6px;
+    height: 20px; background: var(--bg2);
+    border: 1px solid var(--border2); position: relative; overflow: hidden; margin-bottom: 4px;
   }
-  .centroid-track-label { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 9px; color: var(--muted); z-index: 1; }
+  .centroid-track-label {
+    position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+    font-size: 8px; color: var(--muted); z-index: 1; letter-spacing: 1px;
+  }
   .centroid-center-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border2); }
   .centroid-marker {
-    position: absolute; top: 3px; bottom: 3px; width: 4px; border-radius: 2px;
-    transition: left 0.15s ease-out;
-    transform: translateX(-50%);
+    position: absolute; top: 2px; bottom: 2px; width: 3px;
+    transition: left 0.12s ease-out; transform: translateX(-50%);
+    border-radius: 1px;
   }
   .centroid-y { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
-  .centroid-w { background: rgba(200,200,200,0.8); box-shadow: 0 0 4px rgba(255,255,255,0.4); }
-  .centroid-none { opacity: 0.2; }
-  .centroid-pct { font-family: var(--mono); font-size: 10px; color: var(--text-dim); text-align: right; }
+  .centroid-w { background: rgba(200,200,200,0.7); box-shadow: 0 0 4px rgba(255,255,255,0.3); }
+  .centroid-none { opacity: 0.15; }
+  .centroid-pct { font-size: 9px; color: var(--text-faint); text-align: right; margin-bottom: 8px; }
 
-  /* kinematics */
-  .kin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  /* kin grid */
+  .kin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .kin-card {
-    background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
-    padding: 8px 10px;
+    background: var(--bg2); border: 1px solid var(--border);
+    padding: 7px 9px; position: relative;
   }
-  .kin-name { font-family: var(--mono); font-size: 9px; color: var(--muted); margin-bottom: 2px; }
-  .kin-val { font-family: var(--mono); font-size: 15px; color: var(--text); }
-
-  /* divider */
-  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .kin-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; width: 6px; height: 6px;
+    border-top: 1px solid var(--border3); border-left: 1px solid var(--border3);
+  }
+  .kin-name { font-size: 8px; color: var(--text-faint); margin-bottom: 2px; letter-spacing: 1px; }
+  .kin-val { font-size: 14px; color: var(--text-dim); font-weight: 300; }
 
   /* ── LOG CONSOLE ── */
   .log-panel {
     grid-column: 1 / 3; grid-row: 3;
-    display: flex; flex-direction: column; height: 160px;
+    display: flex; flex-direction: column;
+    min-height: 0;
   }
+
   .log-body {
-    flex: 1; overflow-y: auto; padding: 8px 14px;
-    font-family: var(--mono); font-size: 11px; line-height: 1.7;
-    background: var(--bg2);
+    flex: 1; overflow-y: auto; padding: 7px 14px;
+    font-family: var(--mono); font-size: 10.5px; line-height: 1.75;
+    background: var(--bg2); min-height: 0;
   }
-  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar { width: 3px; }
   .log-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
   .log-line { display: flex; gap: 10px; }
-  .log-ts { color: var(--muted); flex-shrink: 0; }
-  .log-msg { color: var(--text-dim); word-break: break-all; }
+  .log-ts { color: var(--text-faint); flex-shrink: 0; }
+  .log-msg { word-break: break-all; }
   .log-msg.info  { color: var(--text-dim); }
   .log-msg.ok    { color: var(--green); }
   .log-msg.warn  { color: var(--amber); }
   .log-msg.error { color: var(--red); }
-  .log-msg.sys   { color: var(--teal); }
+  .log-msg.sys   { color: var(--cyan); }
+
   .log-controls { display: flex; align-items: center; gap: 8px; padding: 0 8px; }
-  .log-clear-btn { padding: 2px 8px; background: transparent; border: 1px solid var(--border2); border-radius: 3px; color: var(--muted); font-family: var(--mono); font-size: 10px; cursor: pointer; }
-  .log-clear-btn:hover { border-color: var(--text-dim); color: var(--text-dim); }
-  .log-count { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-left: auto; }
+  .log-clear-btn {
+    padding: 2px 8px; background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-faint); font-family: var(--mono); font-size: 9px;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+  }
+  .log-clear-btn:hover { border-color: var(--border3); color: var(--text-dim); }
+  .log-count { font-size: 9px; color: var(--text-faint); margin-left: auto; letter-spacing: 1px; }
 
   /* ── ANIMATIONS ── */
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-  .fade-in { animation: fadeIn 0.3s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+  .fade-in { animation: fadeIn 0.2s ease forwards; }
 
-  /* responsive adjustments */
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
+
+  /* responsive */
   @media (max-width: 1100px) {
     .main-grid { grid-template-columns: 240px 1fr 260px; }
     .metrics-row { grid-template-columns: repeat(3, 1fr); max-height: none; }
+    .header-center { display: none; }
   }
 </style>
 </head>
 <body>
+<div class="app">
 
 <!-- HEADER -->
 <header>
+  <div class="header-accent"></div>
   <div class="header-left">
     <div class="duck-icon">🦆</div>
-    <div>
-      <div class="header-title">Duckie Control Station</div>
+    <div class="header-wordmark">
+      <div class="header-title">Duckie Control</div>
       <div class="header-sub" id="header-sub">OFFLINE — connect to begin</div>
     </div>
   </div>
+
+  <div class="header-center">
+    <div class="header-stat">
+      <div class="header-stat-label">Vehicle</div>
+      <div class="header-stat-val" id="hdr-veh">—</div>
+    </div>
+    <div class="header-stat">
+      <div class="header-stat-label">State</div>
+      <div class="header-stat-val" id="hdr-state">—</div>
+    </div>
+    <div class="header-stat">
+      <div class="header-stat-label">Uptime</div>
+      <div class="header-stat-val" id="hdr-uptime">—</div>
+    </div>
+  </div>
+
   <div class="header-right">
     <div class="clock" id="clock">--:--:--</div>
     <div class="conn-badge" id="conn-badge">
@@ -408,16 +702,16 @@
   <!-- LEFT: Connection -->
   <div class="panel left-col">
     <div class="panel-header">
-      <span class="panel-label"><span class="dot" style="background:var(--teal)"></span>CONNECTION</span>
+      <span class="panel-label"><span class="dot" style="background:var(--gold)"></span>Connection</span>
     </div>
     <div class="panel-body">
 
       <div class="hostname-input-wrap">
-        <label>BOT HOSTNAME</label>
+        <label>Bot Hostname</label>
         <input class="hostname-input" id="hostname" type="text" value="nasavpns" spellcheck="false" autocomplete="off"/>
       </div>
 
-      <button class="connect-btn" id="connect-btn" onclick="startConnect()">◈ CONNECT</button>
+      <button class="connect-btn" id="connect-btn" onclick="startConnect()">◈ Connect</button>
 
       <div class="steps" id="steps">
         <div class="step pending" id="step-ping">
@@ -426,7 +720,7 @@
         </div>
         <div class="step pending" id="step-bridge">
           <span class="step-icon">○</span>
-          <span>Reach HTTP bridge :8765</span>
+          <span>HTTP bridge :8765</span>
         </div>
         <div class="step pending" id="step-ros">
           <span class="step-icon">○</span>
@@ -434,18 +728,18 @@
         </div>
         <div class="step pending" id="step-cam">
           <span class="step-icon">○</span>
-          <span>Camera stream live</span>
+          <span>Camera stream</span>
         </div>
       </div>
 
       <div class="ip-display" id="ip-display">
-        <span class="ip-key">IP ›</span>
+        <span class="ip-key">IP</span>
         <span id="ip-val">—</span>
       </div>
 
       <div class="divider"></div>
 
-      <div class="section-label">DTS LAUNCHER</div>
+      <div class="section-label">DTS Launcher</div>
       <div class="dts-controls">
         <button class="dts-btn" id="btn-dts-run" onclick="launchDts()" disabled>▶ dts devel run</button>
         <button class="dts-btn" id="btn-dts-build" onclick="buildDts()" disabled>⚙ dts devel build</button>
@@ -454,11 +748,11 @@
 
       <div class="divider"></div>
 
-      <div class="section-label">VEHICLE</div>
-      <div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);line-height:1.8;">
-        <div><span style="color:var(--muted)">NAME </span><span id="info-veh">—</span></div>
-        <div><span style="color:var(--muted)">ADDR </span><span id="info-addr">—</span></div>
-        <div><span style="color:var(--muted)">UPTIME </span><span id="info-uptime">—</span></div>
+      <div class="section-label">Vehicle</div>
+      <div class="veh-info">
+        <div class="veh-row"><span class="veh-key">Name</span><span class="veh-val" id="info-veh">—</span></div>
+        <div class="veh-row"><span class="veh-key">Addr</span><span class="veh-val" id="info-addr">—</span></div>
+        <div class="veh-row"><span class="veh-key">Uptime</span><span class="veh-val" id="info-uptime">—</span></div>
       </div>
 
     </div>
@@ -467,19 +761,25 @@
   <!-- CENTER: Camera -->
   <div class="panel camera-panel" style="grid-column:2;grid-row:1;">
     <div class="panel-header">
-      <span class="panel-label"><span class="dot" style="background:var(--cyan)"></span>CAMERA — LANE DETECTION VIEW</span>
-      <div style="display:flex;gap:8px;">
-        <button onclick="toggleStream()" id="stream-toggle-btn" style="padding:2px 8px;background:transparent;border:1px solid var(--border2);border-radius:3px;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;">MJPEG</button>
-        <button onclick="refreshFrame()" style="padding:2px 8px;background:transparent;border:1px solid var(--border2);border-radius:3px;color:var(--text-dim);font-family:var(--mono);font-size:10px;cursor:pointer;">↻ SNAP</button>
+      <span class="panel-label"><span class="dot" style="background:var(--cyan)"></span>Camera — Lane Detection</span>
+      <div style="display:flex;gap:6px;">
+        <button onclick="toggleStream()" id="stream-toggle-btn" class="panel-btn">MJPEG</button>
+        <button onclick="refreshFrame()" class="panel-btn">↻ Snap</button>
       </div>
     </div>
     <div class="camera-wrap" id="camera-wrap">
       <div class="no-feed" id="no-feed">
+        <div class="no-feed-crosshair"></div>
         <div class="no-feed-icon">📷</div>
         <div>No feed — connect to bot</div>
       </div>
       <img class="camera-feed" id="camera-feed" style="display:none;" alt="debug feed"/>
       <div class="camera-overlay" id="camera-overlay"></div>
+      <div class="cam-corner cam-corner-tl"></div>
+      <div class="cam-corner cam-corner-tr"></div>
+      <div class="cam-corner cam-corner-bl"></div>
+      <div class="cam-corner cam-corner-br"></div>
+      <div class="camera-scan" id="camera-scan"></div>
       <div class="cam-badge" id="cam-badge" style="display:none;">
         <div class="live-dot"></div>LIVE
       </div>
@@ -487,9 +787,9 @@
       <div class="cam-state" id="cam-state" style="display:none;"></div>
     </div>
     <div class="legend">
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--amber);"></div>Yellow line (attract)</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:rgba(200,200,200,0.8);"></div>White line (repel)</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--teal);width:2px;"></div>Centroid</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--amber);"></div>Yellow (attract)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:rgba(200,200,200,0.7);"></div>White (repel)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--cyan);width:2px;"></div>Centroid</div>
       <div class="legend-item"><div class="legend-swatch" style="background:var(--muted);"></div>Center ref</div>
     </div>
   </div>
@@ -497,43 +797,43 @@
   <!-- CENTER: Metrics -->
   <div class="metrics-row">
     <div class="metric-card">
-      <div class="metric-label">LINEAR V</div>
-      <div class="metric-value" id="m-v">0.00</div>
-      <div class="metric-unit">m/s</div>
-      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-v" style="width:0%;background:var(--teal)"></div></div>
+      <div class="metric-label">Linear V</div>
+      <div class="metric-value" id="m-v">0.000</div>
+      <div class="metric-unit">m / s</div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-v" style="width:0%;background:var(--gold)"></div></div>
     </div>
     <div class="metric-card">
-      <div class="metric-label">OMEGA ω</div>
-      <div class="metric-value" id="m-omega">0.00</div>
-      <div class="metric-unit">rad/s</div>
+      <div class="metric-label">Omega ω</div>
+      <div class="metric-value" id="m-omega">0.000</div>
+      <div class="metric-unit">rad / s</div>
       <div class="metric-bar-wrap"><div class="metric-bar" id="mb-omega" style="width:0%;background:var(--cyan)"></div></div>
     </div>
     <div class="metric-card">
-      <div class="metric-label">YELLOW CX</div>
+      <div class="metric-label">Yellow Cx</div>
       <div class="metric-value" id="m-ycx">—</div>
       <div class="metric-unit">normalized</div>
       <div class="metric-bar-wrap"><div class="metric-bar" id="mb-ycx" style="width:0%;background:var(--amber)"></div></div>
     </div>
     <div class="metric-card">
-      <div class="metric-label">WHITE CX</div>
+      <div class="metric-label">White Cx</div>
       <div class="metric-value" id="m-wcx">—</div>
       <div class="metric-unit">normalized</div>
-      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-wcx" style="width:0%;background:rgba(200,200,200,0.7)"></div></div>
+      <div class="metric-bar-wrap"><div class="metric-bar" id="mb-wcx" style="width:0%;background:rgba(200,200,200,0.6)"></div></div>
     </div>
     <div class="metric-card">
-      <div class="metric-label">CAM FPS</div>
+      <div class="metric-label">Camera FPS</div>
       <div class="metric-value" id="m-fps">—</div>
-      <div class="metric-unit">frames/sec</div>
+      <div class="metric-unit">frames / sec</div>
       <div class="metric-bar-wrap"><div class="metric-bar" id="mb-fps" style="width:0%;background:var(--green)"></div></div>
     </div>
   </div>
 
-  <!-- LOG CONSOLE (bottom, spanning left+center) -->
+  <!-- LOG CONSOLE -->
   <div class="panel log-panel">
     <div class="panel-header" style="padding:5px 14px;">
-      <span class="panel-label"><span class="dot" style="background:var(--muted)"></span>CONSOLE LOG</span>
+      <span class="panel-label"><span class="dot" style="background:var(--text-faint)"></span>Console</span>
       <div class="log-controls">
-        <button class="log-clear-btn" onclick="clearLog()">CLEAR</button>
+        <button class="log-clear-btn" onclick="clearLog()">Clear</button>
         <span class="log-count" id="log-count">0 lines</span>
       </div>
     </div>
@@ -543,33 +843,33 @@
   <!-- RIGHT: Controls + Kinematics -->
   <div class="panel right-col">
     <div class="panel-header">
-      <span class="panel-label"><span class="dot" style="background:var(--green)"></span>CONTROLS</span>
+      <span class="panel-label"><span class="dot" style="background:var(--green)"></span>Controls</span>
     </div>
     <div class="panel-body">
 
       <div class="status-indicator" id="lane-status">
         <div class="status-led"></div>
-        <span id="lane-status-text">LANE FOLLOWING — UNKNOWN</span>
+        <span id="lane-status-text">Lane Following — Unknown</span>
       </div>
 
-      <div class="control-section">
-        <div class="section-label">LANE FOLLOWING</div>
-        <button class="lane-btn btn-start" id="btn-start" onclick="sendCommand('start')" disabled>▶ START</button>
-        <button class="lane-btn btn-stop"  id="btn-stop"  onclick="sendCommand('stop')"  disabled>■ STOP</button>
+      <div class="control-section" style="margin-bottom:16px;">
+        <div class="section-label">Lane Following</div>
+        <button class="lane-btn btn-start" id="btn-start" onclick="sendCommand('start')" disabled>▶ Start</button>
+        <button class="lane-btn btn-stop"  id="btn-stop"  onclick="sendCommand('stop')"  disabled>■ Stop</button>
       </div>
 
       <div class="divider"></div>
 
       <div class="centroid-section">
-        <div class="section-label">CENTROID POSITIONS</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;">YELLOW LINE (attract)</div>
+        <div class="section-label">Centroid Positions</div>
+        <div class="centroid-sublabel">Yellow line (attract)</div>
         <div class="centroid-track">
           <span class="centroid-track-label">Y</span>
           <div class="centroid-center-line"></div>
           <div class="centroid-marker centroid-y centroid-none" id="marker-y" style="left:50%"></div>
         </div>
         <div class="centroid-pct" id="pct-y">—</div>
-        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:6px;margin-top:8px;">WHITE LINE (repel)</div>
+        <div class="centroid-sublabel">White line (repel)</div>
         <div class="centroid-track">
           <span class="centroid-track-label">W</span>
           <div class="centroid-center-line"></div>
@@ -580,8 +880,8 @@
 
       <div class="divider"></div>
 
-      <div class="section-label">KINEMATICS CALIBRATION</div>
-      <div class="kin-grid" id="kin-grid">
+      <div class="section-label">Kinematics</div>
+      <div class="kin-grid" id="kin-grid" style="margin-bottom:12px;">
         <div class="kin-card"><div class="kin-name">gain</div><div class="kin-val" id="kin-gain">—</div></div>
         <div class="kin-card"><div class="kin-name">trim</div><div class="kin-val" id="kin-trim">—</div></div>
         <div class="kin-card"><div class="kin-name">baseline</div><div class="kin-val" id="kin-baseline">—</div></div>
@@ -590,9 +890,7 @@
         <div class="kin-card"><div class="kin-name">limit</div><div class="kin-val" id="kin-limit">—</div></div>
       </div>
 
-      <div class="divider"></div>
-
-      <div class="section-label">CONTROL PARAMS</div>
+      <div class="section-label">Control Params</div>
       <div class="kin-grid">
         <div class="kin-card"><div class="kin-name">v_base</div><div class="kin-val" id="p-v_base">—</div></div>
         <div class="kin-card"><div class="kin-name">k_p</div><div class="kin-val" id="p-k_p">—</div></div>
@@ -603,6 +901,7 @@
   </div>
 
 </div><!-- end main-grid -->
+</div><!-- end app -->
 
 <script>
 // ── STATE ──────────────────────────────────────────────
@@ -635,7 +934,6 @@ function log(msg, level='info') {
   body.scrollTop = body.scrollHeight;
   logLines++;
   document.getElementById('log-count').textContent = `${logLines} lines`;
-  // keep max 500 lines
   while (body.children.length > 500) body.removeChild(body.firstChild);
 }
 function clearLog() {
@@ -667,8 +965,6 @@ async function startConnect() {
   setConnBadge('connecting');
   log(`Connecting to ${botHost}...`, 'sys');
 
-  // Step 1: Resolve / ping — we attempt to reach the HTTP bridge directly
-  // (browser can't ping; we just try HTTP and interpret the result)
   setStep('step-ping', 'running', `Resolving ${botHost}.local`);
   log(`Trying ${botHost}.local ...`);
 
@@ -709,7 +1005,6 @@ async function startConnect() {
   setStep('step-ping', 'done', `Resolved → ${resolvedAddr}`);
   log(`Reached bridge at ${reachable}`, 'ok');
 
-  // Step 2: Bridge
   setStep('step-bridge', 'running', 'Checking HTTP bridge');
   let statusData;
   try {
@@ -726,10 +1021,10 @@ async function startConnect() {
     return;
   }
 
-  // Step 3: ROS node
   setStep('step-ros', 'running', 'Checking ROS node');
   if (statusData && statusData.veh) {
     document.getElementById('info-veh').textContent = statusData.veh;
+    document.getElementById('hdr-veh').textContent = statusData.veh;
     connectTime = Date.now();
     setStep('step-ros', 'done', `Node alive — ${statusData.veh}`);
     log(`ROS node alive. State: ${statusData.state}`, 'ok');
@@ -737,7 +1032,6 @@ async function startConnect() {
     setStep('step-ros', 'error', 'No ROS node data');
   }
 
-  // Step 4: Camera
   setStep('step-cam', 'running', 'Checking camera feed');
   try {
     const r = await fetchWithTimeout(`${bridgeBase}/debug_image.jpg`, 4000);
@@ -753,16 +1047,18 @@ async function startConnect() {
     log('Camera frame not yet available — will retry once running.', 'warn');
   }
 
-  // All done
   connected = true;
   setConnBadge('connected');
   document.getElementById('header-sub').textContent = `ONLINE — ${botHost}.local`;
   document.getElementById('connect-btn').disabled = false;
-  document.getElementById('connect-btn').textContent = '◈ RECONNECT';
+  document.getElementById('connect-btn').textContent = '◈ Reconnect';
   enableControls();
   startPolling();
   startImageRefresh();
   updateStatus(statusData);
+
+  // activate camera scan line
+  document.getElementById('camera-scan').classList.add('active');
 }
 
 function setConnBadge(state) {
@@ -800,7 +1096,6 @@ function startPolling() {
 function updateStatus(data) {
   if (!data) return;
 
-  // Metrics
   const v = data.v ?? 0;
   const omega = data.omega ?? 0;
   const ycx = data.y_center;
@@ -813,41 +1108,36 @@ function updateStatus(data) {
   document.getElementById('m-wcx').textContent    = wcx !== null && wcx !== undefined ? wcx.toFixed(3) : '—';
   document.getElementById('m-fps').textContent    = fps.toFixed(1);
 
-  // Metric bars
   document.getElementById('mb-v').style.width     = `${Math.min(100, (v / 0.3) * 100)}%`;
   document.getElementById('mb-omega').style.width  = `${Math.min(100, (Math.abs(omega) / 5) * 100)}%`;
   document.getElementById('mb-ycx').style.width   = ycx !== null && ycx !== undefined ? `${ycx * 100}%` : '0%';
   document.getElementById('mb-wcx').style.width   = wcx !== null && wcx !== undefined ? `${wcx * 100}%` : '0%';
   document.getElementById('mb-fps').style.width   = `${Math.min(100, (fps / 30) * 100)}%`;
 
-  // Centroid bars
   updateCentroid('y', ycx);
   updateCentroid('w', wcx);
 
-  // State camera label
   const stateEl = document.getElementById('cam-state');
   if (data.state) {
     stateEl.textContent = data.state;
     stateEl.className = `cam-state ${data.state}`;
     stateEl.style.display = 'block';
+    document.getElementById('hdr-state').textContent = data.state;
   }
 
-  // FPS badge
-  document.getElementById('cam-fps').textContent = `${fps} fps`;
+  document.getElementById('cam-fps').textContent = `${fps.toFixed(1)} fps`;
 
-  // Lane active
   const active = data.active;
   const laneStatus = document.getElementById('lane-status');
   const laneText = document.getElementById('lane-status-text');
   if (active) {
     laneStatus.className = 'status-indicator active';
-    laneText.textContent = 'LANE FOLLOWING — ACTIVE';
+    laneText.textContent = 'Lane Following — Active';
   } else {
     laneStatus.className = 'status-indicator stopped';
-    laneText.textContent = 'LANE FOLLOWING — STOPPED';
+    laneText.textContent = 'Lane Following — Stopped';
   }
 
-  // Kinematics
   if (data.kinematics) {
     const k = data.kinematics;
     ['gain','trim','baseline','radius','k','limit'].forEach(key => {
@@ -856,7 +1146,6 @@ function updateStatus(data) {
     });
   }
 
-  // Params
   if (data.params) {
     const p = data.params;
     ['v_base','k_p','k_repel'].forEach(key => {
@@ -865,11 +1154,12 @@ function updateStatus(data) {
     });
   }
 
-  // Uptime
   if (connectTime) {
     const sec = Math.floor((Date.now() - connectTime) / 1000);
     const m = Math.floor(sec / 60), s = sec % 60;
-    document.getElementById('info-uptime').textContent = `${m}m ${s}s`;
+    const uptime = `${m}m ${s}s`;
+    document.getElementById('info-uptime').textContent = uptime;
+    document.getElementById('hdr-uptime').textContent = uptime;
   }
 }
 
@@ -922,7 +1212,7 @@ function activateSnapPolling() {
   }
   snap();
   if (imgTimer) clearInterval(imgTimer);
-  imgTimer = setInterval(snap, 100); // ~10fps snap polling
+  imgTimer = setInterval(snap, 100);
 }
 
 function toggleStream() {
@@ -953,9 +1243,7 @@ async function sendCommand(cmd) {
   }
 }
 
-// ── DTS LAUNCHER (spawned via local backend — not available in pure browser) ──
-// These require the Python launcher script to be running locally.
-// They call the launcher proxy on localhost:8766 if available.
+// ── DTS LAUNCHER ──────────────────────────────────────
 const LAUNCHER_BASE = 'http://localhost:8766';
 
 async function launchDts() {
@@ -1005,7 +1293,7 @@ async function stopDts() {
 
 // ── LAUNCHER PROXY LOG POLLER ──────────────────────────
 let launcherLogOffset = 0;
-let launcherReachable = null; // null=unchecked, true, false
+let launcherReachable = null;
 
 async function checkLauncherHealth() {
   try {
@@ -1044,7 +1332,6 @@ setInterval(async () => {
   }
 }, 1000);
 
-// Check launcher health immediately on page load
 checkLauncherHealth();
 
 // ── UTILS ──────────────────────────────────────────────
