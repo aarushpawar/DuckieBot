@@ -66,6 +66,8 @@ RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
 # install launcher scripts
 COPY ./launchers/. "${LAUNCH_PATH}/"
 COPY ./launchers/default.sh "${LAUNCH_PATH}/"
+# strip Windows-style CRLF so /bin/bash^M bad-interpreter errors can't occur
+RUN find "${LAUNCH_PATH}" -type f -name "*.sh" -exec sed -i 's/\r//' {} +
 RUN dt-install-launchers "${LAUNCH_PATH}"
 
 # define default command
