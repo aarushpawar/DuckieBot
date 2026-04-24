@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>lane_follower</name>
+  <name>lane_follower_backup</name>
   <version>1.0.0</version>
   <description>Simple Lane Follower for Duckiebot</description>
   <maintainer email="duckie@duckietown.org">duckie</maintainer>
