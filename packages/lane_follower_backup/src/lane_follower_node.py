@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+NODE_VERSION = "1.0.1"
+
 import os
 import time
 import threading
@@ -34,7 +36,7 @@ class LaneFollowerNode(DTROS):
 
         self.veh = os.environ.get("VEHICLE_NAME", "duckiebot")
 
-        self.v_base   = DTParam("~v_base",   param_type=ParamType.FLOAT, default=0.20)
+        self.v_base   = DTParam("~v_base",   param_type=ParamType.FLOAT, default=0.15)
         self.k_p      = DTParam("~k_p",      param_type=ParamType.FLOAT, default=3.0)
         self.k_repel  = DTParam("~k_repel",  param_type=ParamType.FLOAT, default=0.6)
 
@@ -49,6 +51,7 @@ class LaneFollowerNode(DTROS):
         self.roi_bot = 0.90
 
         # Runtime state
+        self._active_lock  = threading.Lock()
         self._lane_active  = True
         self._last_omega   = 0.0
         self._last_v       = 0.0
@@ -92,7 +95,7 @@ class LaneFollowerNode(DTROS):
         else:
             self.log("Flask not available — HTTP bridge disabled.")
 
-        self.log("Lane Follower Node initialized.")
+        self.log(f"Lane Follower Node v{NODE_VERSION} initialized.")
 
     # ------------------------------------------------------------------
     # Control
@@ -136,8 +139,9 @@ class LaneFollowerNode(DTROS):
 
         if y_ctr is not None:
             # --- PRIMARY: follow yellow, keep it at ~35% from left ---
-            error = 0.35 - y_ctr          # positive → yellow too far right → turn right
-            omega = -k_p * error          # note sign: positive error → steer right (neg omega)
+            # positive error = yellow drifted left in frame = robot drifted right = turn left (+omega)
+            error = 0.35 - y_ctr
+            omega = k_p * error
 
             # White repulsion: white on the LEFT means we've drifted into oncoming lane
             if w_ctr is not None:
@@ -196,7 +200,9 @@ class LaneFollowerNode(DTROS):
 
         v, omega, state = self.compute_cmd(y_ctr, w_ctr)
 
-        if self._lane_active:
+        with self._active_lock:
+            active = self._lane_active
+        if active:
             self.publish_cmd(v, omega)
 
         # --- FPS tracking ---
@@ -270,7 +276,8 @@ class LaneFollowerNode(DTROS):
     # ------------------------------------------------------------------
 
     def cb_enable(self, msg):
-        self._lane_active = msg.data
+        with self._active_lock:
+            self._lane_active = msg.data
         self.log(f"Lane following {'ENABLED' if msg.data else 'DISABLED'} via ROS topic")
 
     # ------------------------------------------------------------------
@@ -303,12 +310,14 @@ class LaneFollowerNode(DTROS):
 
         @app.route("/start", methods=["POST"])
         def start():
-            node._lane_active = True
+            with node._active_lock:
+                node._lane_active = True
             return jsonify({"ok": True, "active": True})
 
         @app.route("/stop", methods=["POST"])
         def stop():
-            node._lane_active = False
+            with node._active_lock:
+                node._lane_active = False
             node.publish_cmd(0, 0)
             return jsonify({"ok": True, "active": False})
 

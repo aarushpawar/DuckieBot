@@ -97,6 +97,8 @@ class SimpleLaneFollower:
         # Decode and Resize
         np_arr = np.frombuffer(msg.data, np.uint8)
         img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        if img is None:
+            return
         h, w = img.shape[:2]
         img = cv2.resize(img, (160, 120))
         h, w = 120, 160
