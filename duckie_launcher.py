@@ -65,7 +65,12 @@ def run_dts(args: list, hostname: str):
         if active_proc and active_proc.poll() is None:
             append_log("[launcher] Killing existing process before starting new one")
             active_proc.terminate()
-            time.sleep(0.5)
+            try:
+                active_proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                append_log("[launcher] Process did not exit after terminate — sending SIGKILL")
+                active_proc.kill()
+                active_proc.wait()
         cmd = _dts_cmd(args + ["-H", hostname])
         append_log(f"[launcher] Running: {' '.join(cmd)}")
         if IS_WINDOWS:
@@ -106,10 +111,15 @@ class Handler(BaseHTTPRequestHandler):
         qs = parse_qs(parsed.query)
 
         if parsed.path == "/logs":
-            offset = int(qs.get("offset", ["0"])[0])
+            try:
+                offset = int(qs.get("offset", ["0"])[0])
+            except (ValueError, IndexError):
+                offset = 0
             with log_lock:
+                buf_len = len(log_buffer)
+                offset = max(0, min(offset, buf_len))
                 lines = log_buffer[offset:]
-                new_offset = len(log_buffer)
+                new_offset = buf_len
             self._json({"lines": lines, "offset": new_offset})
 
         elif parsed.path == "/ping":
