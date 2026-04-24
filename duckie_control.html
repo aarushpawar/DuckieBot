@@ -678,18 +678,24 @@ async function startConnect() {
   ];
 
   let reachable = null;
+  let lastErr = null;
   for (const url of candidates) {
     try {
       const r = await fetchWithTimeout(`${url}/status`, 3000);
       if (r.ok) { reachable = url; break; }
-    } catch(_) {}
+      lastErr = `HTTP ${r.status} from ${url}`;
+    } catch(e) {
+      lastErr = `${url} — ${e.message || e}`;
+    }
   }
 
   if (!reachable) {
     setStep('step-ping', 'error', `Cannot reach ${botHost}`);
     setStep('step-bridge', 'error', 'Bridge unreachable');
-    log(`ERROR: Cannot reach ${botHost}.local:8765 or ${botHost}:8765`, 'error');
-    log('Make sure the container is running with --network=host or port 8765 exposed.', 'warn');
+    log(`ERROR: ${lastErr}`, 'error');
+    log(`Tried: ${candidates.join(', ')}`, 'warn');
+    log('Is the container running? Run "dts devel run" first, then wait ~15s for Flask to start.', 'warn');
+    log('Container must expose port 8765 or use --network=host.', 'warn');
     setConnBadge('error');
     document.getElementById('connect-btn').disabled = false;
     return;
@@ -713,7 +719,8 @@ async function startConnect() {
     log(`Bridge OK — veh=${statusData.veh}`, 'ok');
   } catch(e) {
     setStep('step-bridge', 'error', 'Bridge response invalid');
-    log(`Bridge error: ${e}`, 'error');
+    log(`Bridge error: ${e.message || e}`, 'error');
+    log('The container responded but /status returned unexpected data.', 'warn');
     setConnBadge('error');
     document.getElementById('connect-btn').disabled = false;
     return;
@@ -997,9 +1004,33 @@ async function stopDts() {
 }
 
 // ── LAUNCHER PROXY LOG POLLER ──────────────────────────
-// polls the local launcher proxy for dts stdout lines
 let launcherLogOffset = 0;
+let launcherReachable = null; // null=unchecked, true, false
+
+async function checkLauncherHealth() {
+  try {
+    const r = await fetchWithTimeout(`${LAUNCHER_BASE}/health`, 2000);
+    if (!r.ok) { launcherReachable = false; return; }
+    const d = await r.json();
+    if (launcherReachable !== true) {
+      launcherReachable = true;
+      const mode = d.wsl_mode ? 'WSL mode' : `native (${d.platform})`;
+      log(`Launcher proxy connected — ${mode}`, 'ok');
+    }
+  } catch(_) {
+    if (launcherReachable !== false) {
+      launcherReachable = false;
+      log('Launcher proxy not running on localhost:8766 — dts buttons won\'t work.', 'warn');
+      log('Start it with: python duckie_launcher.py (or inside WSL on Windows)', 'warn');
+    }
+  }
+}
+
 setInterval(async () => {
+  if (launcherReachable === null || launcherReachable === false) {
+    await checkLauncherHealth();
+    return;
+  }
   try {
     const r = await fetchWithTimeout(`${LAUNCHER_BASE}/logs?offset=${launcherLogOffset}`, 1000);
     if (!r.ok) return;
@@ -1008,8 +1039,13 @@ setInterval(async () => {
       d.lines.forEach(l => log(l, 'info'));
       launcherLogOffset = d.offset;
     }
-  } catch(_) {}
+  } catch(_) {
+    launcherReachable = false;
+  }
 }, 1000);
+
+// Check launcher health immediately on page load
+checkLauncherHealth();
 
 // ── UTILS ──────────────────────────────────────────────
 function fetchWithTimeout(url, timeout=5000, opts={}) {

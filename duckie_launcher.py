@@ -19,6 +19,7 @@ import os
 import sys
 import json
 import socket
+import platform
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -27,6 +28,15 @@ log_buffer = []
 log_lock = threading.Lock()
 active_proc = None
 proc_lock = threading.Lock()
+
+# On Windows, dts lives inside WSL — detect this once at startup.
+IS_WINDOWS = platform.system() == "Windows"
+
+def _dts_cmd(args: list) -> list:
+    """Return the full command list to run dts, handling WSL on Windows."""
+    if IS_WINDOWS:
+        return ["wsl"] + args
+    return args
 
 
 def append_log(line: str):
@@ -56,8 +66,10 @@ def run_dts(args: list, hostname: str):
             append_log("[launcher] Killing existing process before starting new one")
             active_proc.terminate()
             time.sleep(0.5)
-        cmd = args + ["-H", hostname]
+        cmd = _dts_cmd(args + ["-H", hostname])
         append_log(f"[launcher] Running: {' '.join(cmd)}")
+        if IS_WINDOWS:
+            append_log("[launcher] Windows detected — routing through WSL")
         try:
             proc = subprocess.Popen(
                 cmd,
@@ -70,7 +82,10 @@ def run_dts(args: list, hostname: str):
             t.start()
             return True, f"Started: {' '.join(cmd)}"
         except FileNotFoundError:
-            msg = f"Command not found: {cmd[0]}. Is dts installed and on PATH?"
+            if IS_WINDOWS:
+                msg = f"Command not found: {cmd[0]}. Make sure WSL is installed and 'dts' is on the WSL PATH."
+            else:
+                msg = f"Command not found: {cmd[0]}. Is dts installed and on PATH?"
             append_log(f"[launcher ERROR] {msg}")
             return False, msg
         except Exception as e:
@@ -99,6 +114,15 @@ class Handler(BaseHTTPRequestHandler):
 
         elif parsed.path == "/ping":
             self._json({"ok": True, "pid": os.getpid()})
+
+        elif parsed.path == "/health":
+            self._json({
+                "ok": True,
+                "platform": platform.system(),
+                "wsl_mode": IS_WINDOWS,
+                "python": sys.version,
+                "pid": os.getpid(),
+            })
 
         else:
             self._json({"error": "not found"}, 404)
