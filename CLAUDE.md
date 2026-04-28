@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Workflow
 
-After completing any code change, always commit and push to `claude/add-claude-documentation-TrIVK` automatically — do not wait for the user to ask.
+After completing any code change, always commit and push to `main` automatically — do not wait for the user to ask.
+
+**Keep this file up to date.** Whenever you change any source file — node logic, topics, parameters, dependencies, versions, or repo structure — update the relevant section(s) of `CLAUDE.md` in the same commit. Future Claude Code sessions rely on this file as the authoritative description of the codebase; stale docs cause incorrect edits.
 
 ## What this is
 
@@ -78,7 +80,7 @@ Supports Windows + WSL2 (auto-prepends `wsl` to `dts` commands).
 
 ### `packages/shape_driver/` — geometric shape driver
 
-- **Version**: `NODE_VERSION = "1.3.0"` in `shape_driver_node.py`
+- **Version**: `NODE_VERSION = "1.3.1"` in `shape_driver_node.py`
 - **Base class**: `DTROS` with `NodeType.CONTROL`
 - **Default on startup**: drives two laps of a circle (`CIRCLE_LAPS=2`, `CIRCLE_LAP_DURATION=8 s`)
 - **Supported commands** (case-insensitive, sent as `std_msgs/String`):
@@ -91,7 +93,7 @@ Supports Windows + WSL2 (auto-prepends `wsl` to `dts` commands).
 
 ### `packages/lane_follower_backup/` — vision-based lane follower (active default)
 
-- **Version**: `NODE_VERSION = "1.0.1"` in `lane_follower_node.py`
+- **Version**: `NODE_VERSION = "1.0.2"` in `lane_follower_node.py`
 - **Base class**: `DTROS` with `NodeType.CONTROL`
 - **Vision pipeline**:
   - Input: compressed image resized to 160×120
