@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Update NODE_VERSION on every change (see CLAUDE.md § Versioning)
-NODE_VERSION = "1.3.0"
+NODE_VERSION = "1.3.1"
 
 import os
 import rospy
@@ -27,7 +27,8 @@ class ShapeDriverNode(DTROS):
         rospy.Subscriber(
             f"/{self.veh}/shape_driver_node/command",
             String,
-            self.cb_command
+            self.cb_command,
+            queue_size=1
         )
 
         self.current_shape = "circle"
@@ -66,6 +67,9 @@ class ShapeDriverNode(DTROS):
 
     def run(self):
         while not rospy.is_shutdown():
+            if not self.switch:
+                rospy.sleep(0.1)
+                continue
             if self.current_shape == "circle":
                 self.drive_circles_then_straight()
             elif self.current_shape == "straight":

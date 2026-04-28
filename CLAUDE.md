@@ -116,7 +116,10 @@ Supports Windows + WSL2 (auto-prepends `wsl` to `dts` commands).
   - `POST /start`, `POST /stop` → enable/disable lane following
   - `GET /debug_image.jpg` → latest annotated JPEG frame
   - `GET /debug_stream` → MJPEG stream
-- **Threading**: `_active_lock`, `_debug_lock`, `_stats_lock` protect shared state
+- **Threading**: three locks protect shared state across the ROS callback and Flask threads:
+  - `_active_lock` — guards `_lane_active` (enable/disable flag); held by `cb_enable`, `/start`, `/stop`, and `/status`
+  - `_stats_lock` — guards `_last_v/omega/state`, centroids, and FPS counters; all written together in one acquisition per frame
+  - `_debug_lock` — guards the latest JPEG bytes for the HTTP debug endpoints
 
 ### `code/simple_lane_follow.py` — standalone lane follower (not containerized)
 
@@ -182,8 +185,8 @@ Each ROS node has a `NODE_VERSION` constant at the top of its source file, print
 - MAJOR — breaking interface change
 
 Current versions:
-- `packages/shape_driver/src/shape_driver_node.py` → `1.3.0`
-- `packages/lane_follower_backup/src/lane_follower_node.py` → `1.0.1`
+- `packages/shape_driver/src/shape_driver_node.py` → `1.3.1`
+- `packages/lane_follower_backup/src/lane_follower_node.py` → `1.0.2`
 
 ## Sending commands manually
 
