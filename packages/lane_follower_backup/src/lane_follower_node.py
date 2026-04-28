@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-NODE_VERSION = "1.0.1"
+NODE_VERSION = "1.0.2"
 
 import os
 import time
@@ -43,7 +43,8 @@ class LaneFollowerNode(DTROS):
         # HSV colour ranges
         self.yellow_low  = np.array([20, 100, 100])
         self.yellow_high = np.array([35, 255, 255])
-        # Tightened: S>40 avoids grabbing white-ish overhead lights
+        # White: low saturation (S<40) and high brightness (V>180).
+        # The S<40 ceiling rejects coloured overhead lights that look white.
         self.white_low   = np.array([0,  0,  180])
         self.white_high  = np.array([180, 40, 255])
 
@@ -114,10 +115,9 @@ class LaneFollowerNode(DTROS):
 
     def get_centroid(self, mask, min_px):
         """Return normalised x centroid [0,1] or None if fewer than min_px pixels."""
-        count = cv2.countNonZero(mask)
-        if count < min_px:
-            return None
         pts = cv2.findNonZero(mask)
+        if pts is None or len(pts) < min_px:
+            return None
         return float(np.mean(pts, axis=0)[0][0]) / mask.shape[1]
 
     # ------------------------------------------------------------------
@@ -205,16 +205,15 @@ class LaneFollowerNode(DTROS):
         if active:
             self.publish_cmd(v, omega)
 
-        # --- FPS tracking ---
-        self._frame_count += 1
+        # --- FPS tracking + stats update (single lock acquisition) ---
         now = time.time()
-        elapsed = now - self._fps_ts
-        if elapsed >= 1.0:
-            self._fps = self._frame_count / elapsed
-            self._frame_count = 0
-            self._fps_ts = now
-
         with self._stats_lock:
+            self._frame_count += 1
+            elapsed = now - self._fps_ts
+            if elapsed >= 1.0:
+                self._fps = self._frame_count / elapsed
+                self._frame_count = 0
+                self._fps_ts = now
             self._last_omega = omega
             self._last_v     = v
             self._last_y_ctr = y_ctr
@@ -291,9 +290,11 @@ class LaneFollowerNode(DTROS):
 
         @app.route("/status")
         def status():
+            with node._active_lock:
+                active = node._lane_active
             with node._stats_lock:
                 return jsonify({
-                    "active":   node._lane_active,
+                    "active":   active,
                     "veh":      node.veh,
                     "state":    node._last_state,
                     "omega":    round(node._last_omega, 4),

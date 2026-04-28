@@ -38,7 +38,6 @@ class SimpleLaneFollower:
         self.pub = rospy.Publisher(f"/{HOSTNAME}/wheels_driver_node/wheels_cmd", WheelsCmdStamped, queue_size=1)
         self.sub = rospy.Subscriber(f"/{HOSTNAME}/camera_node/image/compressed", CompressedImage, self.cb_image, queue_size=1, buff_size=2**24)
         
-        self.last_error = 0
         rospy.loginfo("Simple Lane Follower Initialized. Waiting for images...")
 
     def load_kinematics(self):
