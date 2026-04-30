@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-NODE_VERSION = "1.0.2"
+NODE_VERSION = "1.1.0"
 
 import os
 import time
@@ -45,11 +45,14 @@ class LaneFollowerNode(DTROS):
         self.yellow_high = np.array([35, 255, 255])
         # White: low saturation (S<40) and high brightness (V>180).
         # The S<40 ceiling rejects coloured overhead lights that look white.
-        self.white_low   = np.array([0,  0,  180])
-        self.white_high  = np.array([180, 40, 255])
+        # OpenCV HSV hue range is 0–179; 180 is out-of-range.
+        self.white_low   = np.array([0,   0,  180])
+        self.white_high  = np.array([179, 40, 255])
 
         self.roi_top = 0.55
         self.roi_bot = 0.90
+
+        self._kinematics = self._load_kinematics()
 
         # Runtime state
         self._active_lock  = threading.Lock()
@@ -306,7 +309,8 @@ class LaneFollowerNode(DTROS):
                         "v_base":  round(node.v_base.value, 4),
                         "k_p":     round(node.k_p.value, 4),
                         "k_repel": round(node.k_repel.value, 4),
-                    }
+                    },
+                    "kinematics": node._kinematics,
                 })
 
         @app.route("/start", methods=["POST"])
@@ -350,6 +354,23 @@ class LaneFollowerNode(DTROS):
         )
         t.start()
         self.log("Flask HTTP bridge running on :8765")
+
+    def _load_kinematics(self):
+        defaults = {
+            "gain": 1.0, "trim": 0.0, "baseline": 0.1,
+            "radius": 0.0318, "k": 27.0, "limit": 1.0,
+            "calibrated": False,
+        }
+        path = f"/data/config/calibrations/kinematics/{self.veh}.yaml"
+        if os.path.exists(path):
+            try:
+                with open(path) as f:
+                    data = yaml.safe_load(f) or {}
+                defaults.update({k: v for k, v in data.items() if k in defaults})
+                defaults["calibrated"] = True
+            except Exception as e:
+                self.log(f"Could not load kinematics calibration: {e}", "warn")
+        return defaults
 
     def on_shutdown(self):
         self.publish_cmd(0, 0)

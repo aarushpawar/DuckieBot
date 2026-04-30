@@ -80,7 +80,7 @@ Supports Windows + WSL2 (auto-prepends `wsl` to `dts` commands).
 
 ### `packages/shape_driver/` — geometric shape driver
 
-- **Version**: `NODE_VERSION = "1.3.1"` in `shape_driver_node.py`
+- **Version**: `NODE_VERSION = "1.3.2"` in `shape_driver_node.py`
 - **Base class**: `DTROS` with `NodeType.CONTROL`
 - **Default on startup**: drives two laps of a circle (`CIRCLE_LAPS=2`, `CIRCLE_LAP_DURATION=8 s`)
 - **Supported commands** (case-insensitive, sent as `std_msgs/String`):
@@ -89,17 +89,18 @@ Supports Windows + WSL2 (auto-prepends `wsl` to `dts` commands).
   - `stop` — zero velocity
 - **Publishes**: `Twist2DStamped` → `/{veh}/car_cmd_switch_node/cmd`
 - **Subscribes**: `String` → `/{veh}/shape_driver_node/command`
+- **Thread safety**: `current_shape` is a property backed by `_shape_lock`; safe for concurrent access from the ROS subscriber and the `run()` main-thread loop
 - **Shutdown**: `on_shutdown()` sends zero velocity to stop motors
 
 ### `packages/lane_follower_backup/` — vision-based lane follower (active default)
 
-- **Version**: `NODE_VERSION = "1.0.2"` in `lane_follower_node.py`
+- **Version**: `NODE_VERSION = "1.1.0"` in `lane_follower_node.py`
 - **Base class**: `DTROS` with `NodeType.CONTROL`
 - **Vision pipeline**:
   - Input: compressed image resized to 160×120
   - ROI: lower 55–90% of frame height (in HSV)
   - Yellow lane (attract): HSV hue 20–35°, S>100, V>100; min 50 px
-  - White lane (repel): HSV S<40, V>180; min 80 px
+  - White lane (repel): HSV H∈[0,179], S<40, V>180; min 80 px
   - Morphological denoising: 3×3 kernel, `MORPH_OPEN`
 - **Control states**: `FOLLOW_YELLOW`, `WHITE_RECOVERY`, `LOST`
 - **Tunable DTParams**:
@@ -114,7 +115,7 @@ Supports Windows + WSL2 (auto-prepends `wsl` to `dts` commands).
   - `CompressedImage` ← `/{veh}/camera_node/image/compressed`
   - `Bool` ← `/{veh}/lane_follower_node/enable`
 - **Flask HTTP bridge** on port 8765 (daemon thread):
-  - `GET /status` → JSON: state, motor commands, centroids, FPS
+  - `GET /status` → JSON: state, motor commands, centroids, FPS, params, kinematics (loaded from `/data/config/calibrations/kinematics/{veh}.yaml` at init; defaults used if file absent, `calibrated: false` flag set)
   - `POST /start`, `POST /stop` → enable/disable lane following
   - `GET /debug_image.jpg` → latest annotated JPEG frame
   - `GET /debug_stream` → MJPEG stream
@@ -126,9 +127,12 @@ Supports Windows + WSL2 (auto-prepends `wsl` to `dts` commands).
 ### `code/simple_lane_follow.py` — standalone lane follower (not containerized)
 
 - Plain `rospy` node, no DTROS lifecycle
-- Robot hostname **hardcoded** to `"nasavpns"` — must be changed to use on a different robot
+- Hostname from `VEHICLE_NAME` env var; falls back to `"nasavpns"` if unset
 - Publishes `WheelsCmdStamped` to `/{HOSTNAME}/wheels_driver_node/wheels_cmd` (manual kinematics)
-- Yellow target: 0.5 normalized X (center), K_P=1.2
+- Yellow target: 0.5 normalized X (center), K_P=1.2; omega clipped to ±4.0 rad/s (`OMEGA_MAX`)
+- Forward speed `v = max(0.05, V_BASE × (1 − |omega| × 0.2))` — floored to prevent backwards motion
+- WHITE_RECOVERY uses centroid position only (no fitLine slope — unreliable in shallow 36 px ROI)
+- Minimum pixel thresholds: MIN_YELLOW_PX=50, MIN_WHITE_PX=80
 - Reads kinematics calibration from `/data/config/calibrations/kinematics/{HOSTNAME}.yaml`
 - Prints ASCII progress bar telemetry to console (no ROS logging)
 
@@ -187,8 +191,8 @@ Each ROS node has a `NODE_VERSION` constant at the top of its source file, print
 - MAJOR — breaking interface change
 
 Current versions:
-- `packages/shape_driver/src/shape_driver_node.py` → `1.3.1`
-- `packages/lane_follower_backup/src/lane_follower_node.py` → `1.0.2`
+- `packages/shape_driver/src/shape_driver_node.py` → `1.3.2`
+- `packages/lane_follower_backup/src/lane_follower_node.py` → `1.1.0`
 
 ## Sending commands manually
 
