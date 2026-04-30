@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 # Update NODE_VERSION on every change (see CLAUDE.md § Versioning)
-NODE_VERSION = "1.3.1"
+NODE_VERSION = "1.3.2"
 
 import os
+import threading
 import rospy
 from duckietown.dtros import DTROS, NodeType
 from duckietown_msgs.msg import Twist2DStamped
@@ -31,8 +32,19 @@ class ShapeDriverNode(DTROS):
             queue_size=1
         )
 
-        self.current_shape = "circle"
+        self._shape_lock = threading.Lock()
+        self._current_shape = "circle"
         self.log(f"Shape Driver v{NODE_VERSION} ready. Will do {CIRCLE_LAPS} circles then drive straight.")
+
+    @property
+    def current_shape(self):
+        with self._shape_lock:
+            return self._current_shape
+
+    @current_shape.setter
+    def current_shape(self, value):
+        with self._shape_lock:
+            self._current_shape = value
 
     def cb_command(self, msg):
         cmd = msg.data.strip().lower()

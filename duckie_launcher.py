@@ -102,8 +102,8 @@ def run_dts(args: list, hostname: str):
 class Handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
-        self._cors()
         self.send_response(200)
+        self._cors()
         self.end_headers()
 
     def do_GET(self):
