@@ -160,6 +160,12 @@ class Handler(BaseHTTPRequestHandler):
             with proc_lock:
                 if active_proc and active_proc.poll() is None:
                     active_proc.terminate()
+                    try:
+                        active_proc.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        append_log("[launcher] Process did not exit after terminate — sending SIGKILL")
+                        active_proc.kill()
+                        active_proc.wait()
                     append_log("[launcher] Process terminated by user")
                     self._json({"ok": True, "message": "Process terminated"})
                 else:

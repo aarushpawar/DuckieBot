@@ -78,7 +78,7 @@ Supports Windows + WSL2 (auto-prepends `wsl` to `dts` commands).
 
 ## ROS packages
 
-### `packages/shape_driver/` — geometric shape driver
+### `packages/shape_driver/` — geometric shape driver (inactive — lane follower is now default)
 
 - **Version**: `NODE_VERSION = "1.3.1"` in `shape_driver_node.py`
 - **Base class**: `DTROS` with `NodeType.CONTROL`

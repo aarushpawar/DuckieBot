@@ -4,6 +4,7 @@
 NODE_VERSION = "1.3.1"
 
 import os
+import threading
 import rospy
 from duckietown.dtros import DTROS, NodeType
 from duckietown_msgs.msg import Twist2DStamped
@@ -31,13 +32,15 @@ class ShapeDriverNode(DTROS):
             queue_size=1
         )
 
+        self._shape_lock = threading.Lock()
         self.current_shape = "circle"
         self.log(f"Shape Driver v{NODE_VERSION} ready. Will do {CIRCLE_LAPS} circles then drive straight.")
 
     def cb_command(self, msg):
         cmd = msg.data.strip().lower()
         if cmd in ["circle", "straight", "stop"]:
-            self.current_shape = cmd
+            with self._shape_lock:
+                self.current_shape = cmd
             self.log(f"Switching to: {cmd}")
         else:
             self.log(f"Unknown command: {cmd}")
@@ -49,30 +52,39 @@ class ShapeDriverNode(DTROS):
         msg.omega = omega
         self.pub_car_cmd.publish(msg)
 
+    def _get_shape(self):
+        with self._shape_lock:
+            return self.current_shape
+
+    def _set_shape(self, shape):
+        with self._shape_lock:
+            self.current_shape = shape
+
     def drive_circles_then_straight(self):
         self.log("Starting circles...")
         for lap in range(CIRCLE_LAPS):
-            if self.current_shape != "circle":
+            if self._get_shape() != "circle":
                 return
             self.log(f"Circle lap {lap + 1}/{CIRCLE_LAPS}")
             t_end = rospy.Time.now() + rospy.Duration(CIRCLE_LAP_DURATION)
             while rospy.Time.now() < t_end:
-                if self.current_shape != "circle":
+                if self._get_shape() != "circle":
                     return
                 self.publish_cmd(0.2, 2.0)
                 rospy.sleep(0.1)
 
         self.log("Circles done. Driving straight.")
-        self.current_shape = "straight"
+        self._set_shape("straight")
 
     def run(self):
         while not rospy.is_shutdown():
             if not self.switch:
                 rospy.sleep(0.1)
                 continue
-            if self.current_shape == "circle":
+            shape = self._get_shape()
+            if shape == "circle":
                 self.drive_circles_then_straight()
-            elif self.current_shape == "straight":
+            elif shape == "straight":
                 self.publish_cmd(0.2, 0.0)
                 rospy.sleep(0.1)
             else:

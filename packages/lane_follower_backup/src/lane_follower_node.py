@@ -175,6 +175,7 @@ class LaneFollowerNode(DTROS):
     # ------------------------------------------------------------------
 
     def cb_image(self, msg):
+        # self.switch is inherited from DTROS — controls node enable/disable
         if not self.switch:
             return
 
@@ -219,6 +220,10 @@ class LaneFollowerNode(DTROS):
             self._last_y_ctr = y_ctr
             self._last_w_ctr = w_ctr
             self._last_state = state
+            if elapsed >= 1.0:
+                self._fps = self._frame_count / elapsed
+                self._frame_count = 0
+                self._fps_ts = now
 
         rospy.logdebug("%s v=%.2f omega=%.2f y=%.2f w=%s",
                        state, v, omega,
@@ -335,19 +340,25 @@ class LaneFollowerNode(DTROS):
         def debug_stream():
             def generate():
                 last = None
-                while True:
-                    with node._debug_lock:
-                        data = node._debug_jpeg
-                    if data is not None and data is not last:
-                        last = data
-                        yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + data + b"\r\n"
-                    time.sleep(0.05)
+                try:
+                    while True:
+                        with node._debug_lock:
+                            data = node._debug_jpeg
+                        if data is not None and data is not last:
+                            last = data
+                            yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + data + b"\r\n"
+                        time.sleep(0.05)
+                except GeneratorExit:
+                    pass
             return Response(generate(), mimetype="multipart/x-mixed-replace; boundary=frame")
 
-        t = threading.Thread(
-            target=lambda: app.run(host="0.0.0.0", port=8765, debug=False, use_reloader=False),
-            daemon=True
-        )
+        def _run_flask():
+            try:
+                app.run(host="0.0.0.0", port=8765, debug=False, use_reloader=False)
+            except OSError as e:
+                self.log(f"Flask HTTP bridge failed to start: {e}")
+
+        t = threading.Thread(target=_run_flask, daemon=True)
         t.start()
         self.log("Flask HTTP bridge running on :8765")
 
